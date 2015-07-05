@@ -3,7 +3,8 @@
 ## Description
 The collection of my scripts for Atomic Simulation Environment (ASE).
 These ASE libraries are freely available at official site https://wiki.fysik.dtu.dk/ase/.
-Mostly concerned bimetallic nanoparticles.
+
+The scripts were written to study bimetallic nanoparticles.
 
 ## Files
 

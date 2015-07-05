@@ -1,10 +1,10 @@
 # ase-bimetall
 
 ## Description
-The collection of my scripts for Atomic Simulation Environment (ASE).
-These ASE libraries are freely available at official site https://wiki.fysik.dtu.dk/ase/.
+The collection of my scripts for Atomic Simulation Environment (ASE) 
+used for study of bimetallic nanoparticles.
+The required ASE libraries are available at official site https://wiki.fysik.dtu.dk/ase/ under free license.
 
-The scripts were written to study bimetallic nanoparticles.
 
 ## Files
 

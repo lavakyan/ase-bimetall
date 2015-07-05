@@ -1,17 +1,19 @@
 # ase-bimetall
 
 ## Description
-The collection of my scripts for Atomic Simulation Environment (ASE). Mostly concerned bimetallic nanoparticles.
+The collection of my scripts for Atomic Simulation Environment (ASE).
+These ASE libraries are freely available at official site https://wiki.fysik.dtu.dk/ase/.
+Mostly concerned bimetallic nanoparticles.
 
 ## Files
 
-*analyzecn.py -- procedure-driven calculation of coordination numbers and similar quantities. *Should be replaced by object oriented version in future.*
+* analyzecn.py -- procedure-driven calculation of coordination numbers and similar quantities. *Should be replaced by object oriented version in future.*
 
-*coreshell.py -- procedures to build atomic clusters with particular architecture
+* coreshell.py -- procedures to build atomic clusters with particular architecture
 
-*mc_search.py -- Monte-Carlo search of structures with predicted coordination numbers. Based on code from ASAP project (https://wiki.fysik.dtu.dk/asap/Monte%20Carlo%20simulations)
+* mc_search.py -- Monte-Carlo search of structures with predicted coordination numbers. Based on code from ASAP project (https://wiki.fysik.dtu.dk/asap/Monte%20Carlo%20simulations)
 
-*qsar.py -- class for calculation of coordination numbers and similar quantities
+* qsar.py -- class for calculation of coordination numbers and similar quantities
 
 
 ## Examples

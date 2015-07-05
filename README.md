@@ -41,8 +41,12 @@ qsar = QSAR(atoms)
 qsar.biatomic('Pt', 'Ag')
 
 print('N = {}'.format(qsar.N))
+
 print('CN_PtPt = {}'.format(qsar.CN_AA))
+
 print('CN_PtAg = {}'.format(qsar.CN_AB))
+
 print('CN_AgAg = {}'.format(qsar.CN_BB))
+
 print('CN_AgPt = {}'.format(qsar.CN_BA))
 

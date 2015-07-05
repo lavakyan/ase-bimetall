@@ -21,6 +21,10 @@ def sphericalFCC(elem, latticeconstant, nlayers):
     Returns
     -------
     ase.Atoms object
+
+    Example
+    --------
+    >>> atoms = sphericalFCC('Ag', 4.09, 8)
     """
     # 1. generate cubical cluster
     surfaces = [(1, 0, 0)]

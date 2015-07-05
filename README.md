@@ -41,6 +41,7 @@ view(atoms)
 from qsar import QSAR
 
 qsar = QSAR(atoms)
+
 qsar.biatomic('Pt', 'Ag')
 
 print('N = {}'.format(qsar.N))

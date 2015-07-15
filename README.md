@@ -23,24 +23,24 @@ The required ASE libraries are available at official site https://wiki.fysik.dtu
 ## Examples
 
 * Import libraries (overkill)
-
+```python
 from ase.all import *
 from coreshell import sphericalFCC, randomize_biatom
-
+```
 * Build a spherical nanoparticle and put it to object atoms:
-
+``` python
 atoms = sphericalFCC('Ag', 4.09, 8)
-
+```
 * Add some Pt atoms:
-
+```
 atoms = randomize_biatom(atoms, 'Pt', 'Ag', ratio=0.6)
-
+```
 * You can view the structure using ASE in a very simple way:
-
+```
 view(atoms)
-
+```
 * Find out coordination numbers:
-
+```
 from qsar import QSAR
 
 qsar = QSAR(atoms)
@@ -48,12 +48,8 @@ qsar = QSAR(atoms)
 qsar.biatomic('Pt', 'Ag')
 
 print('N = {}'.format(qsar.N))
-
 print('CN_PtPt = {}'.format(qsar.CN_AA))
-
 print('CN_PtAg = {}'.format(qsar.CN_AB))
-
 print('CN_AgAg = {}'.format(qsar.CN_BB))
-
 print('CN_AgPt = {}'.format(qsar.CN_BA))
-
+```

@@ -67,6 +67,7 @@ def cut_spherical_cluster(atoms, size):
     >>> atoms = cut_spherical_cluster(atoms, 10) # 1nm cluster
     """
     atoms = copy.copy(atoms) # keep original atoms unchanged
+    atoms.center(0)
     Xmin = atoms.positions[:, 0].min()
     Xmax = atoms.positions[:, 0].max()
     Ymin = atoms.positions[:, 1].min()

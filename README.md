@@ -32,15 +32,15 @@ from coreshell import sphericalFCC, randomize_biatom
 atoms = sphericalFCC('Ag', 4.09, 8)
 ```
 * Add some Pt atoms:
-```
+``` python
 atoms = randomize_biatom(atoms, 'Pt', 'Ag', ratio=0.6)
 ```
 * You can view the structure using ASE in a very simple way:
-```
+``` python
 view(atoms)
 ```
 * Find out coordination numbers:
-```
+``` python
 from qsar import QSAR
 
 qsar = QSAR(atoms)

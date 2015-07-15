@@ -2,6 +2,7 @@
   to generate core-shell A@B nanoparticle with FCC structure.
 """
 import random
+import copy
 from math import sqrt
 from ase.calculators.neighborlist import NeighborList
 from ase.cluster.cubic import FaceCenteredCubic
@@ -46,6 +47,47 @@ def sphericalFCC(elem, latticeconstant, nlayers):
         else:
             ia += 1
     return atoms
+
+def cut_spherical_cluster(atoms, size):
+    r""" Cuts spherical cluster from provided atoms object
+
+    Parameters
+    ----------
+    atoms: ASE.Atoms object
+        the original cluster to be cut off
+    size: float
+        the diameter of resulting cluster, in Angstrom
+
+    Returns
+    -------
+    ase.Atoms object of resulted cluster
+
+    Example
+    --------
+    >>> atoms = cut_spherical_cluster(atoms, 10) # 1nm cluster
+    """
+    atoms = copy.copy(atoms) # keep original atoms unchanged
+    Xmin = atoms.positions[:, 0].min()
+    Xmax = atoms.positions[:, 0].max()
+    Ymin = atoms.positions[:, 1].min()
+    Ymax = atoms.positions[:, 1].max()
+    Zmin = atoms.positions[:, 2].min()
+    Zmax = atoms.positions[:, 2].max()
+    Cx =  (Xmin+Xmax)/2.0
+    Cy =  (Ymin+Ymax)/2.0
+    Cz =  (Zmin+Zmax)/2.0
+    R = size/2.0 # radius of cluster
+    ia = 0
+    while ia < len(atoms):
+        x2 = (atoms.positions[ia, 0] - Cx)**2
+        y2 = (atoms.positions[ia, 1] - Cy)**2
+        z2 = (atoms.positions[ia, 2] - Cz)**2
+        if (x2 + y2 + z2) > R**2:
+            del atoms[ia]
+        else:
+            ia += 1
+    return atoms
+
 
 
 def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):

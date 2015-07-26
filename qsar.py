@@ -316,12 +316,13 @@ class QSAR:
             N = len(self.atoms)
         else:
             for i in xrange( len(self.atoms) ):
-                if atoms[i].symbol == atom_type:
+                if self.atoms[i].symbol == atom_type:
                     N = N +1
+        #print N
         assert( N>0 )
-        xs = atoms.positions[:, 0]
-        ys = atoms.positions[:, 1]
-        zs = atoms.positions[:, 2]
+        xs = self.atoms.positions[:, 0]
+        ys = self.atoms.positions[:, 1]
+        zs = self.atoms.positions[:, 2]
         # centering at zero
         min_x = min( xs )
         max_x = max( xs )
@@ -332,18 +333,23 @@ class QSAR:
         center_x = (min_x+max_x)/2.0
         center_y = (min_y+max_y)/2.0
         center_z = (min_z+max_z)/2.0
+        # shift center to origin
         for i in xrange( len(self.atoms) ):
             xs[i] = xs[i] - center_x
             ys[i] = ys[i] - center_y
             zs[i] = zs[i] - center_z
-
+        # calc radia
         Rs = np.zeros( N )
-        for i in xrange(N):
+        k = 0
+        for i in xrange( len(self.atoms) ):
             if atom_type == 'all':
-                Rs[i] = xs[i]*xs[i]+ys[i]*ys[i]*zs[i]*zs[i]
+                Rs[k] = xs[i]*xs[i]+ys[i]*ys[i]+zs[i]*zs[i]
+                k = k + 1
             else:
-                if atoms[i].symbol == atom_type:
-                    Rs[i] = xs[i]*xs[i]+ys[i]*ys[i]*zs[i]*zs[i]
+                if self.atoms[i].symbol == atom_type:
+                    Rs[k] = xs[i]*xs[i]+ys[i]*ys[i]+zs[i]*zs[i]
+                    k = k + 1
+        for i in xrange( N ):
             Rs[i] = sqrt( Rs[i] )
         #pause
         return Rs

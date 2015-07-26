@@ -8,12 +8,15 @@
 """
 
 import os, sys
+import numpy as np
+from math import sqrt
 from ase import Atom, Atoms
 from ase.calculators.neighborlist import NeighborList
 
 class QSAR:
     def __init__(self, atoms, log='-'):
-        self.atoms = atoms
+        self.atoms = atoms.copy()
+        self.atoms.center()
         self.chems = [] # chemical symbols
         self.CNs = []   # coordination numbers
         if isinstance(log, str):
@@ -31,8 +34,6 @@ class QSAR:
 
         Parameters
         ----------
-        atoms: ase.Atoms
-            ase Atoms object, containing atomic cluster.
         R1: float
             First coordination shell will icnlude all atoms
             with distance less then R1 [Angstrom].
@@ -113,8 +114,6 @@ class QSAR:
 
         Parameters
         ----------
-        atoms: ase.Atoms
-            ase Atoms object, containing atomic cluster.
         A: string
             atom type, like 'Ag', 'Pt', etc.
         B: string
@@ -294,6 +293,64 @@ class QSAR:
         self.CNshellBB = CNshellBB
         self.CNshellBA = CNshellBA
 
+    def atom_distances(self, atom_type = 'all'):
+        r"""This routine computes the radial distrubution function
+        relative of the center of nanoparticle
+
+        Parameters
+        ----------
+        atom_type: string
+            atom type, like 'Ag', 'Pt', etc. Default is 'all'.
+
+        Returns
+        -------
+        numpy.array() containing the distances of atoms from the center
+
+
+        Example
+        --------
+        to be added
+        """
+        N = 0
+        if atom_type == 'all':
+            N = len(self.atoms)
+        else:
+            for i in xrange( len(self.atoms) ):
+                if atoms[i].symbol == atom_type:
+                    N = N +1
+        assert( N>0 )
+        xs = atoms.positions[:, 0]
+        ys = atoms.positions[:, 1]
+        zs = atoms.positions[:, 2]
+        # centering at zero
+        min_x = min( xs )
+        max_x = max( xs )
+        min_y = min( ys )
+        max_y = max( ys )
+        min_z = min( zs )
+        max_z = max( zs )
+        center_x = (min_x+max_x)/2.0
+        center_y = (min_y+max_y)/2.0
+        center_z = (min_z+max_z)/2.0
+        for i in xrange( len(self.atoms) ):
+            xs[i] = xs[i] - center_x
+            ys[i] = ys[i] - center_y
+            zs[i] = zs[i] - center_z
+
+        Rs = np.zeros( N )
+        for i in xrange(N):
+            if atom_type == 'all':
+                Rs[i] = xs[i]*xs[i]+ys[i]*ys[i]*zs[i]*zs[i]
+            else:
+                if atoms[i].symbol == atom_type:
+                    Rs[i] = xs[i]*xs[i]+ys[i]*ys[i]*zs[i]*zs[i]
+            Rs[i] = sqrt( Rs[i] )
+        #pause
+        return Rs
+        #return xs*xs+ys*ys+zs*zs
+
+
+
 if __name__ == '__main__':
     from ase.cluster.cubic import FaceCenteredCubic
     print('\nTest monoatomic')
@@ -305,7 +362,10 @@ if __name__ == '__main__':
     a = 4.090  # Ag lattice constant
     layers = [max100, max110, max111]
     atoms = FaceCenteredCubic('Ag', surfaces, layers, latticeconstant=a)
+    #from ase.visualize import view
+    #view(atoms)
     qsar = QSAR(atoms)
+
     qsar.monoatomic()
     print('N \t R \t CN \t E \t Ncore \t C \t CNshell')
     print('{}\t{}\t{:.3f}\t{}\t{}\t{:.3f}\t{:.3f}'.format(
@@ -323,8 +383,8 @@ if __name__ == '__main__':
 
     CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.2, a_cell=4.09)
 
-    #from ase.visualize import view
-    #view(atoms)
+    from ase.visualize import view
+    view(atoms)
     #N, nA, R, CN_AA, CN_AB, CN_BB, CN_BA, etha, E, NAcore, \
     #  NBcore, CNshellAA, CNshellAB, CNshellBB, CNshellBA \
     qsar = QSAR(atoms)
@@ -366,4 +426,16 @@ if __name__ == '__main__':
     print('** A<->B swap test passed **')
     #raw_input("Press enter")
 
+    print '# Radial distribution in NP'
+    print '# All atoms'
+    for value in qsar.atom_distances('all'):
+         print value
+    print '# Ag'
+    for value in qsar.atom_distances('Ag'):
+         print value
+    #print '# Pt'
+    #for value in qsar.atom_distances('Pt'):
+    #     print value
+
     print('** Finished **')
+

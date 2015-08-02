@@ -318,8 +318,7 @@ class QSAR:
             for i in xrange( len(self.atoms) ):
                 if self.atoms[i].symbol == atom_type:
                     N = N +1
-        #print N
-        assert( N>0 )
+
         xs = self.atoms.positions[:, 0]
         ys = self.atoms.positions[:, 1]
         zs = self.atoms.positions[:, 2]

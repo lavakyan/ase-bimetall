@@ -16,7 +16,7 @@ from ase.calculators.neighborlist import NeighborList
 class QSAR:
     def __init__(self, atoms, log='-'):
         self.atoms = atoms.copy()
-        self.atoms.center()
+        #self.atoms.center()
         self.chems = [] # chemical symbols
         self.CNs = []   # coordination numbers
         if isinstance(log, str):
@@ -205,15 +205,19 @@ class QSAR:
         CNshellBB = 0
         CNshellBA = 0
         for iatom in xrange(0, N):
+            #print "central atom index:", iatom, " kind: ", self.atoms[iatom].symbol
             indeces, offsets = nl.get_neighbors(iatom)
             if self.atoms[iatom].symbol == B:
                 CN_BB_temp = 0
                 CN_BA_temp = 0
                 for ii in indeces:
+                    #print "neighbor atom index:", ii, " kind: ", self.atoms[ii].symbol
                     if self.atoms[ii].symbol == B:
                         CN_BB_temp += 1
-                    else:  # atoms[i].symbol == A :
+                    elif  self.atoms[ii].symbol == A:
                         CN_BA_temp += 1
+                    else:
+                        print "Warning: unknown atom type %s. It will not be counted!"%self.atoms[ii].symbol
                 CN_BB += CN_BB_temp
                 CN_BA += CN_BA_temp
                 if len(indeces) < 12:
@@ -223,14 +227,17 @@ class QSAR:
                 else:
                     # CORE
                     NBcore += 1
-            else:  # atoms[iatom].symbol == A :
+            elif self.atoms[iatom].symbol == A:
                 CN_AA_temp = 0
                 CN_AB_temp = 0
                 for i in indeces:
+                    #print "neighbor atom index:", i, " kind: ", self.atoms[i].symbol
                     if self.atoms[i].symbol == A:
                         CN_AA_temp += 1
-                    else:  # atoms[i].symbol==B :
+                    elif self.atoms[i].symbol == B:
                         CN_AB_temp += 1
+                    else:
+                        print "Warning: unknown atom type %s. It will not be counted!"%self.atoms[i].symbol
                 CN_AA += CN_AA_temp
                 CN_AB += CN_AB_temp
                 if len(indeces) < 12:
@@ -240,6 +247,9 @@ class QSAR:
                 else:
                     # CORE
                     NAcore += 1
+            else:
+                #raise Exception("Un")
+                print "Warning: unknown atom type %s. It will not be counted!"%self.atoms[iatom].symbol
         # averaging:
         CN_AA = CN_AA * 1.0 / nA
         CN_AB = CN_AB * 1.0 / nA
@@ -262,11 +272,12 @@ class QSAR:
 
         # calc concentrations:
         concB = nB * 1.0 / N
-        if concB < 0.0001:
+        znam = concB * (CN_AA + CN_AB)
+        if znam < 0.0001:
             #print "WARNING! Too low B concentration: ",concB
             etha = 999
         else:
-            etha = 1 - CN_AB / (concB * (CN_AA + CN_AB))
+            etha = 1 - CN_AB / znam
         R = self.atoms.positions.max() / 2.0
         if calc_energy:
             #from asap3 import EMT
@@ -431,16 +442,17 @@ if __name__ == '__main__':
     print('** A<->B swap test passed **')
     #raw_input("Press enter")
 
-    print '# Radial distribution in NP'
-    print '# All atoms'
-    for value in qsar.atom_distances('all'):
-         print value
-    print '# Ag'
-    for value in qsar.atom_distances('Ag'):
-         print value
-    #print '# Pt'
-    #for value in qsar.atom_distances('Pt'):
-    #     print value
+    if False:
+		print '# Radial distribution in NP'
+		print '# All atoms'
+		for value in qsar.atom_distances('all'):
+			print value
+		print '# Ag'
+		for value in qsar.atom_distances('Ag'):
+			print value
+		#print '# Pt'
+		#for value in qsar.atom_distances('Pt'):
+		#     print value
 
     print('** Finished **')
 

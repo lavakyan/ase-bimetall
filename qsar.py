@@ -305,8 +305,8 @@ class QSAR:
         self.CNshellBA = CNshellBA
 
     def atom_distances(self, atom_type = 'all'):
-        r"""This routine computes the radial distrubution function
-        relative of the center of nanoparticle
+        r"""This routine returns distances to the origin in the center
+        of nanoparticle. Can be used to calc distance distributions
 
         Parameters
         ----------
@@ -443,16 +443,16 @@ if __name__ == '__main__':
     #raw_input("Press enter")
 
     if False:
-		print '# Radial distribution in NP'
-		print '# All atoms'
-		for value in qsar.atom_distances('all'):
-			print value
-		print '# Ag'
-		for value in qsar.atom_distances('Ag'):
-			print value
-		#print '# Pt'
-		#for value in qsar.atom_distances('Pt'):
-		#     print value
+                print '# Radial distribution in NP'
+                print '# All atoms'
+                for value in qsar.atom_distances('all'):
+                        print value
+                print '# Ag'
+                for value in qsar.atom_distances('Ag'):
+                        print value
+                #print '# Pt'
+                #for value in qsar.atom_distances('Pt'):
+                #     print value
 
     print('** Finished **')
 

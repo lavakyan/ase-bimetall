@@ -7,6 +7,8 @@ from math import sqrt
 from ase.calculators.neighborlist import NeighborList
 from ase.cluster.cubic import FaceCenteredCubic
 
+from qsar import QSAR
+
 def sphericalFCC(elem, latticeconstant, nlayers):
     r""" Geneartes spherical cluster of atoms of FCC metal
 
@@ -325,6 +327,25 @@ def randomize_biatom_13(atoms, type_a, type_b, ratio):
                 if (atoms[ia].symbol != type_a)&(n_A < ratio*N):
                     atoms[ia].symbol = type_a
                     n_A += 1
+    return atoms
+
+def randomize_userfunc(atoms, new_type, user_func):
+    """ replace host atoms randomly by new_type of atom
+    by user function of probability distribution.
+    Concentration is hidden that function.
+    Go throw all atoms one type."""
+    #TODO: backup atoms?
+    N = len(atoms)
+    qsar = QSAR(atoms)
+    r = random.Random()
+    dists = qsar.atom_distances()
+    Rmax = max(dists)
+    for i_atom in xrange(N):
+        #r.random() - random float in interval [0,1)
+        x = dists[i_atom]/Rmax
+        if r.random() > user_func(x):
+            atoms[i_atom].symbol = new_type
+
     return atoms
 
 if __name__ == '__main__':

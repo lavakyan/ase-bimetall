@@ -42,25 +42,27 @@ class MC:
                             ])
 
     #def __init__(self, atoms, log='-'):
-        #self.atoms = atoms # todo -- use this atoms to build initial configuaration
-    def __init__(self, log='-'):
+    #self.atoms = atoms # todo -- use this atoms to build initial configuaration
+    #TODO: change default values of chems to [] - empty list
+    def __init__(self, log='-', chems=[29, 78]):
         self.atoms = None
         self.moves = []   # available move types
         self.moves_weight = []  # some random moves are more random
         self.move = None  # current move
         self.nsteps = {}  # dict-counter
         self.naccept = {} # dict-counter
-        self.chems = [] # chemical symbols (not currently in use)
+        #self.chems = [] # chemical symbols
+        self.chems = chems # chemical symbols
         self.CNs = []   # coordination numbers
-        self.conc = []     # concentration of components
+        #self.conc = []     # concentration of components
         self.E = 1e32   # potential energy per atom
 
         #self.A = 29     # Cu
         #self.chems.append(self.A)
-        self.chems.append( 29 ) # Cu
-        self.conc.append( 0.47 )
-        self.chems.append( 78 ) # Pt
-        self.conc.append( 0.53 )
+        #self.chems.append( 29 ) # Cu
+        #self.conc.append( 0.47 )
+        #self.chems.append( 78 ) # Pt
+        #self.conc.append( 0.53 )
         for a1 in self.chems:
             for a2 in self.chems:
                 self.CNs.append(0)
@@ -141,29 +143,47 @@ class MC:
     def random_move(self):
         self.calc_neighbors()
         #return self.moves[(np.random.uniform() < self.moves_weight).argmax()]
-        found = False
-        while not found:
-            n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
-            found = self.NEIB[n1, n2, n3] > 0
-        if self.GRID[n1, n2, n3] > 0: # already filled, may be destroyed or swapped
-            #if self.weightedChoice([True, False], self.moves_weight[[0,2])): # destroy
-            if (np.random.uniform() > 0.5):
-                self.moves[0].setup(self.GRID, n1, n2, n3)
-                self.move = self.moves[0]
-            else: #swap
-                A = self.GRID[n1, n2, n3]
-                B = self.GRID[n1, n2, n3]
-                while B == A:
-                    B = self.weightedChoice(self.chems, self.target_conc)
-                #print("Swapping ",A, " -> ", B)
-                self.move = self.moves[2]
-                self.move.setup(self.GRID, n1, n2, n3, B)
-        else: # empty, may be filled
-            #np.random.choice(self.chems, self.target_conc)
-            A = self.weightedChoice(self.chems, self.target_conc)
-            #print('** Adding ',A)
-            self.move = self.moves[1]
-            self.move.setup(self.GRID, n1, n2, n3, A)
+        ## first, choose move, then - position ##
+        self.move = self.moves[0] # instance of MoveSwap  #TODO choose by random
+        if isinstance(self.move, MoveSwap):
+            found = False
+            while not found: # find non-emty position
+                n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
+                found = self.GRID[n1, n2, n3] > 0
+            # find chemical element to swap
+            B = filter(lambda A: A != self.GRID[n1, n2, n3], self.chems)[0]
+            self.move.setup(self.GRID, n1, n2, n3, B)
+
+        #~ while not found:
+            #~ n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
+            #~ found = self.NEIB[n1, n2, n3] > 0
+        #~ if self.GRID[n1, n2, n3] > 0: # already filled, may be destroyed or swapped
+            #~ try: # http://stackoverflow.com/questions/5655198/python-get-instance-from-list-based-on-instance-variable
+                #~ self.move = filter(lambda mv: isinstance(mv, MoveDestroy), self.moves)[0]
+            #~ except IndexError:
+                #~ return self.random_move()
+            #~ #if self.weightedChoice([True, False], self.moves_weight[[0,2])): # destroy
+            #~ if (np.random.uniform() > 0.5):
+                #~ self.move.setup(self.GRID, n1, n2, n3)
+            #~ else: #swap
+                #~ try:
+                    #~ self.move = filter(lambda mv: isinstance(mv, MoveSwap), self.moves)[0]
+                #~ except IndexError:
+                    #~ return self.random_move()
+                #~ A = self.GRID[n1, n2, n3]
+                #~ B = self.GRID[n1, n2, n3]
+                #~ while B == A:
+                    #~ B = self.weightedChoice(self.chems, self.target_conc)
+                #~ self.move.setup(self.GRID, n1, n2, n3, B)
+        #~ else: # empty, may be filled
+            #~ #np.random.choice(self.chems, self.target_conc)
+            #~ A = self.weightedChoice(self.chems, self.target_conc)
+            #~ #print('** Adding ',A)
+            #~ try:
+                #~ self.move = filter(lambda mv: isinstance(mv, MoveCreate), self.moves)[0]
+            #~ except IndexError:
+                #~ return self.random_move()
+            #~ self.move.setup(self.GRID, n1, n2, n3, A)
         return self.move
 
         #print [np.random.uniform() < self.moves_weight].any()
@@ -186,9 +206,48 @@ class MC:
                             self.atoms.append(atom)
         return self.atoms
 
-    def set_atoms(self, atoms):
-        """ set atoms position as initial values of GRID """
-        raise NotImplementedError
+    def set_atoms(self, atoms, margin = 5):
+        """ set atoms position as initial values of GRID
+        This function will alter the size of the GRID
+        atoms - ASE.Atoms object with atomic system
+        margin - the extra space from the borders of GRID array
+
+        Example:
+            mc = MC()
+            atoms = read('initial.cube')
+            mc.set_lattice_constant(2.772*sqrt(2))
+            mc.set_atoms(atoms, margin=1)
+            from ase.visualize import view
+            view(mc.get_atoms())"""
+        x = atoms.positions[:,0]
+        y = atoms.positions[:,1]
+        z = atoms.positions[:,2]
+        n1 = np.round(1/self.a*(-x + y + z ))
+        n2 = np.round(1/self.a*( x - y + z ))
+        n3 = np.round(1/self.a*( x + y - z ))
+        #~ n1.astype(int)
+        #~ n2.astype(int)
+        #~ n3.astype(int)
+        # change GRID array to fit all the data + margin space
+        min1 = n1.min()
+        min2 = n2.min()
+        min3 = n3.min()
+        max1 = n1.max()
+        max2 = n2.max()
+        max3 = n3.max()
+        L = max(max1-min1, max2-min2, max3-min3) + 1  # +1 is required for correct treatment of margin=0 case
+        L += 2*margin
+        print('L = %i\n' % L)
+        self.init_grid( L )
+        for i_atom in xrange(len(atoms)):
+            in1 = margin + n1[i_atom] - min1
+            in2 = margin + n2[i_atom] - min2
+            in3 = margin + n3[i_atom] - min3
+            self.GRID[in1, in2, in3] = atoms[i_atom].number
+            if not(atoms[i_atom].number in self.chems):
+                self.chems.append(atoms[i_atom].number)
+                print('WARNING: Added atom with Z=%i'%atoms[i_atom].number)
+        return L
 
     def calc_neighbors(self):
         """ To fill array of neighbors numbers.
@@ -221,6 +280,11 @@ class MC:
                 i += 1
         #print nnn
         #print sum(nnn)*1.0 / len(atoms)
+    def calc_conc(self):
+        N = (self.GRID > 0).sum()
+        N_A = (self.GRID == self.chems[0]).sum()
+        N_B = (self.GRID == self.chems[1]).sum()
+        return [1.0*N_A/N, 1.0*N_B/N]
 
     def calc_energy(self):
         atoms = self.get_atoms()
@@ -279,16 +343,18 @@ class MC:
             self.logfile.write('=' * 60 + '\n')
             self.logfile.write('Target CN  : '+str(self.targetCNs)
                             +'\nAchieved CN: '+str(self.CNs)
+                            +'\nTarget conc: '+str(self.target_conc)
+                            +'\nAchieved conc: '+str(self.calc_conc())
                             +'\nError function: '+str(self.error_function())
                             +'\n')
             self.logfile.write('Natoms = %i\n' % self.get_N())
             self.logfile.write('='*60+'\n')
             # for comparison with list version
-            from qsar import QSAR
-            q = QSAR(self.get_atoms())
-            q.monoatomic()
-            self.logfile.write('qsar> N  = %i\n' % q.N )
-            self.logfile.write('qsar> CN = %f\n' % q.CN)
+            #~ from qsar import QSAR
+            #~ q = QSAR(self.get_atoms())
+            #~ q.monoatomic()
+            #~ self.logfile.write('qsar> N  = %i\n' % q.N )
+            #~ self.logfile.write('qsar> CN = %f\n' % q.CN)
             self.logfile.flush()
         #else:
         #    raise "Called log stats without logfile setted"
@@ -304,7 +370,7 @@ class MC:
     def error_function(self):
         # a-la-Lagrange coefficients (weights)
         wCN = 1    # CN term
-        wE  = 0.001    # Energy term
+        wE  = 0 #0.001    # Energy term
         wX  = 0.1  # Concentration term
         #print "target, current:"
         #print self.targetCNs
@@ -313,8 +379,19 @@ class MC:
         self.calc_CNs()
         #E = self.calc_energy()
         #result = wCN * sum((np.array(self.targetCNs)-np.array(self.CNs))**2)
-        result = wCN * sum((self.targetCNs-self.CNs)**2)
-        result += wE * self.calc_energy()
+        # result = wCN * sum((self.targetCNs-self.CNs)**2) # -- last working version. Changed to treat skipping
+        result = 0
+        if wCN > 0:
+            for i in range(len(self.targetCNs)):
+                if self.targetCNs[i] > 0:
+                    result += (self.targetCNs[i]-self.CNs[i])**2
+        result *= wCN
+        if wE > 0:
+            result += wE * self.calc_energy()
+        if wX > 0:
+            curr_conc = self.calc_conc();
+            #print(N, N_A, N_B)
+            result += wX*( (self.target_conc[0] - curr_conc[0])**2 + (self.target_conc[1] - curr_conc[1])**2 )
         return result
 
     def evaluate_move(self):

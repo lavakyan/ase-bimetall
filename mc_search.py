@@ -137,14 +137,16 @@ class MC:
         #    move.set_optimizer(self)
         self.moves.append(move)
         self.moves_weight.append(weight)
+        print('Weights: ',self.moves_weight)
         self.nsteps[move.get_name()] = 0
         self.naccept[move.get_name()] = 0
 
     def random_move(self):
         self.calc_neighbors()
+        # choose move:
         #return self.moves[(np.random.uniform() < self.moves_weight).argmax()]
-        ## first, choose move, then - position ##
-        self.move = self.moves[0] # instance of MoveSwap  #TODO choose by random
+        self.move = self.weightedChoice(self.moves, self.moves_weight)
+        # setup move:
         if isinstance(self.move, MoveSwap):
             found = False
             while not found: # find non-emty position
@@ -153,37 +155,30 @@ class MC:
             # find chemical element to swap
             B = filter(lambda A: A != self.GRID[n1, n2, n3], self.chems)[0]
             self.move.setup(self.GRID, n1, n2, n3, B)
-
-        #~ while not found:
-            #~ n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
-            #~ found = self.NEIB[n1, n2, n3] > 0
-        #~ if self.GRID[n1, n2, n3] > 0: # already filled, may be destroyed or swapped
-            #~ try: # http://stackoverflow.com/questions/5655198/python-get-instance-from-list-based-on-instance-variable
-                #~ self.move = filter(lambda mv: isinstance(mv, MoveDestroy), self.moves)[0]
-            #~ except IndexError:
-                #~ return self.random_move()
-            #~ #if self.weightedChoice([True, False], self.moves_weight[[0,2])): # destroy
-            #~ if (np.random.uniform() > 0.5):
-                #~ self.move.setup(self.GRID, n1, n2, n3)
-            #~ else: #swap
-                #~ try:
-                    #~ self.move = filter(lambda mv: isinstance(mv, MoveSwap), self.moves)[0]
-                #~ except IndexError:
-                    #~ return self.random_move()
-                #~ A = self.GRID[n1, n2, n3]
-                #~ B = self.GRID[n1, n2, n3]
-                #~ while B == A:
-                    #~ B = self.weightedChoice(self.chems, self.target_conc)
-                #~ self.move.setup(self.GRID, n1, n2, n3, B)
-        #~ else: # empty, may be filled
-            #~ #np.random.choice(self.chems, self.target_conc)
-            #~ A = self.weightedChoice(self.chems, self.target_conc)
-            #~ #print('** Adding ',A)
-            #~ try:
-                #~ self.move = filter(lambda mv: isinstance(mv, MoveCreate), self.moves)[0]
-            #~ except IndexError:
-                #~ return self.random_move()
-            #~ self.move.setup(self.GRID, n1, n2, n3, A)
+        elif isinstance(self.move, MoveShuffle):
+            found = False
+            while not found: # find non-empty position
+                n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
+                found = (self.GRID[n1, n2, n3] > 0)
+            #TODO: check if selected atom is not unique
+            found = False
+            while not found: # find non-empty position
+                m1, m2, m3 = np.random.random_integers(0, self.L-1, 3)
+                found = (self.GRID[m1, m2, m3] > 0) and (self.GRID[m1, m2, m3] != self.GRID[n1, n2, n3])
+            self.move.setup(self.GRID, n1, n2, n3, m1, m2, m3)
+        elif isinstance(self.move, MoveDestroy):
+            found = False
+            while not found: # find non-empty position
+                n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
+                found = self.GRID[n1, n2, n3] > 0
+            self.move.setup(self.GRID, n1, n2, n3)
+        elif isinstance(self.move, MoveCreate):
+            while not found: # find empty position bounded to non-empty
+                n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
+                found = (self.GRID[n1, n2, n3] == 0)and(self.NEIB[n1, n2, n3] > 0)
+            np.random.choice(self.chems, self.target_conc)
+            A = self.weightedChoice(self.chems, self.target_conc)
+            self.move.setup(self.GRID, n1, n2, n3, A)
         return self.move
 
         #print [np.random.uniform() < self.moves_weight].any()
@@ -225,10 +220,7 @@ class MC:
         n1 = np.round(1/self.a*(-x + y + z ))
         n2 = np.round(1/self.a*( x - y + z ))
         n3 = np.round(1/self.a*( x + y - z ))
-        #~ n1.astype(int)
-        #~ n2.astype(int)
-        #~ n3.astype(int)
-        # change GRID array to fit all the data + margin space
+        # change GRID array size to fit all the data + margin space
         min1 = n1.min()
         min2 = n2.min()
         min3 = n3.min()
@@ -280,6 +272,7 @@ class MC:
                 i += 1
         #print nnn
         #print sum(nnn)*1.0 / len(atoms)
+
     def calc_conc(self):
         N = (self.GRID > 0).sum()
         N_A = (self.GRID == self.chems[0]).sum()
@@ -345,7 +338,7 @@ class MC:
                             +'\nAchieved CN: '+str(self.CNs)
                             +'\nTarget conc: '+str(self.target_conc)
                             +'\nAchieved conc: '+str(self.calc_conc())
-                            +'\nError function: '+str(self.error_function())
+                            +'\nError function: '+str(self.penalty_function())
                             +'\n')
             self.logfile.write('Natoms = %i\n' % self.get_N())
             self.logfile.write('='*60+'\n')
@@ -367,7 +360,7 @@ class MC:
     def set_lattice_constant(self, lattice_constant):
         self.a = lattice_constant
 
-    def error_function(self):
+    def penalty_function(self):
         # a-la-Lagrange coefficients (weights)
         wCN = 1             # CN contrib.
         wE  = 0  # 0.001    # Energy contrib.
@@ -393,12 +386,12 @@ class MC:
 
     def evaluate_move(self):
         #oldCNs = self.CNs[:]
-        Eold = self.error_function()
+        Eold = self.penalty_function()
         #if self.logfile is not None:
         #    self.logfile.write('\nOld: E %f \t CN %f \t Energy %f' % (Eold, self.CNs[0], self.E))
         self.move()
         newCNs = self.CNs
-        Enew = self.error_function()
+        Enew = self.penalty_function()
         #if self.logfile is not None:
         #    self.logfile.write('New: E %f \t CN %f \t Energy %f\n' % (Enew, self.CNs[0], self.E))
         if Enew < Eold:
@@ -449,6 +442,7 @@ class Move:
 
     def __init__(self):
         self.GRID = None
+        #self.str_template = '\t[%i,%i,%i]: %i -> %i\t'
 
     def __call__(self):
         #
@@ -525,8 +519,6 @@ class MoveCreate(Move):
         self.GRID[self.n1,self.n2,self.n3] = 0
 
     def __str__(self):
-        #('* Move: %s \t' % move.get_name())
-        #self.logfile.write(' Pos.: ['+str(move.n1)+','+str(move.n2)+','+str(move.n3)+'] \t')
         return Move.__str__(self) + self.str_template % (self.n1, self.n2, self.n3, 0, self.Zatom)
 
 class MoveSwap(Move):
@@ -555,6 +547,46 @@ class MoveSwap(Move):
         #('* Move: %s \t' % move.get_name())
         #self.logfile.write(' Pos.: ['+str(move.n1)+','+str(move.n2)+','+str(move.n3)+'] \t')
         return Move.__str__(self) + self.str_template % (self.n1, self.n2, self.n3, self.backup_value, self.Zatom)
+
+
+class MoveShuffle(Move):
+    def __init___(self):
+        #print('Initializing MoveShuffle')
+        self.n1 = None
+        self.n2 = None
+        self.n3 = None
+        self.m1 = None
+        self.m2 = None
+        self.m3 = None
+        Move.__init__(self)
+        self.str_template = '\t[%i,%i,%i]<->[%i,%i,%i]\t'
+        #print(self.str_template)
+
+    def __call__(self):
+        temp = self.GRID[self.n1, self.n2, self.n3]
+        self.GRID[self.n1, self.n2, self.n3] = self.GRID[self.m1, self.m2, self.m3]
+        self.GRID[self.m1, self.m2, self.m3] = temp
+
+    def setup(self,  GRID, n1, n2, n3, m1, m2, m3):
+        Move.setup(self, GRID)
+        self.n1 = n1
+        self.n2 = n2
+        self.n3 = n3
+        self.m1 = n1
+        self.m2 = n2
+        self.m3 = n3
+        assert GRID[n1,n2,n3] != GRID[m1,m2,m3], 'Shuffle Move will have no effect'
+
+    def reject(self):
+        temp = self.GRID[self.n1, self.n2, self.n3]
+        self.GRID[self.n1, self.n2, self.n3] = self.GRID[self.m1, self.m2, self.m3]
+        self.GRID[self.m1, self.m2, self.m3] = temp
+
+    def __str__(self):
+        #('* Move: %s \t' % move.get_name())
+        #self.logfile.write(' Pos.: ['+str(move.n1)+','+str(move.n2)+','+str(move.n3)+'] \t')
+        #return Move.__str__(self) + self.str_template % (self.n1, self.n2, self.n3, self.m1, self.m2, self.m3) # why not working?
+        return Move.__str__(self) + '\t[%i,%i,%i]<->[%i,%i,%i]\t' % (self.n1, self.n2, self.n3, self.m1, self.m2, self.m3)
 
 #######################################################################
 

@@ -369,12 +369,9 @@ class MC:
 
     def error_function(self):
         # a-la-Lagrange coefficients (weights)
-        wCN = 1    # CN term
-        wE  = 0 #0.001    # Energy term
-        wX  = 0.1  # Concentration term
-        #print "target, current:"
-        #print self.targetCNs
-        #print self.CNs
+        wCN = 1             # CN contrib.
+        wE  = 0  # 0.001    # Energy contrib.
+        wX  = 1             # Concentration  contrib.
         self.calc_neighbors()
         self.calc_CNs()
         #E = self.calc_energy()
@@ -406,7 +403,7 @@ class MC:
         #    self.logfile.write('New: E %f \t CN %f \t Energy %f\n' % (Enew, self.CNs[0], self.E))
         if Enew < Eold:
             if self.logfile is not None:
-                self.logfile.write(' P: 1+\t')
+                self.logfile.write(' P: 1+   \t')
             return True
         else:
             prob = np.exp( (Eold - Enew) / (self.temp * kB))

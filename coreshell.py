@@ -343,7 +343,7 @@ def randomize_userfunc(atoms, new_type, user_func):
     for i_atom in xrange(N):
         #r.random() - random float in interval [0,1)
         x = dists[i_atom]/Rmax
-        if r.random() > user_func(x):
+        if r.random() < user_func(x):
             atoms[i_atom].symbol = new_type
 
     return atoms

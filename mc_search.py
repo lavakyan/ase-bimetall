@@ -572,9 +572,9 @@ class MoveShuffle(Move):
         self.n1 = n1
         self.n2 = n2
         self.n3 = n3
-        self.m1 = n1
-        self.m2 = n2
-        self.m3 = n3
+        self.m1 = m1
+        self.m2 = m2
+        self.m3 = m3
         assert GRID[n1,n2,n3] != GRID[m1,m2,m3], 'Shuffle Move will have no effect'
 
     def reject(self):

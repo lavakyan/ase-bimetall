@@ -568,6 +568,7 @@ class MoveChange13(MoveChange):
         self.Zatom = Zatom
         assert GRID[n1,n2,n3] > 0, 'Use MoveCreate instead to fill empty place'
         # store previous state:
+        self.backup_values = []
         self.backup_values.append(self.GRID[self.n1,self.n2,self.n3])
         for shift in self.shifts:
             self.backup_values.append(self.GRID[self.n1+shift[0],self.n2+shift[1],self.n3+shift[2]])
@@ -637,17 +638,18 @@ if __name__ == '__main__':
     mc.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = mc.chems[1] # mc.chems[0]
     s = 2
     mc.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = mc.chems[1] # 0
-    #~ print('Test MoveChange13')
-    #~ move = MoveChange13()
-    #~ move.setup(mc.GRID, n, n, n, mc.chems[0])
-    #~ move()
-    #~ from ase.visualize import view
-    #~ view(mc.get_atoms())
-    #~ raw_input('Press enter')
-    #~ print('Test reject')
-    #~ move.reject()
-    #~ view(mc.get_atoms())
-    #~ raw_input('Press enter')
+    if True: # test move change 13
+        print('Test MoveChange13')
+        move = MoveChange13()
+        move.setup(mc.GRID, n, n, n, mc.chems[0])
+        move()
+        from ase.visualize import view
+        view(mc.get_atoms())
+        raw_input('Press enter')
+        print('Test reject')
+        move.reject()
+        view(mc.get_atoms())
+        raw_input('Press enter')
 
     target_CN = np.zeros(4)
     target_CN[0] = 2.8  # Cu-Cu
@@ -661,7 +663,7 @@ if __name__ == '__main__':
     #        i += 1
     mc.set_targets( target_CN, [0.47, 0.53], temperature=1000)
 
-    if False:
+    if True:
         atoms = mc.get_atoms()
         mc.calc_neighbors()
         mc.calc_CNs()

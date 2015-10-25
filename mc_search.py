@@ -15,7 +15,6 @@ import numpy as np
 #from scipy import ndimage  # to calc neigbors w/o NeighborList
 from scipy.signal import convolve
 from ase import Atom, Atoms
-#from qsar import QSAR
 from ase.units import kB
 from asap3 import EMT
 
@@ -41,54 +40,47 @@ class MC:
                              [0, 0, 0]]
                             ])
 
-    #def __init__(self, atoms, log='-'):
-    #self.atoms = atoms # todo -- use this atoms to build initial configuaration
-    #TODO: change default values of chems to [] - empty list
-    def __init__(self, log='-', chems=[29, 78]):
+    def __init__(self, log='-', chems=[]):
         self.atoms = None
         self.moves = []   # available move types
         self.moves_weight = []  # some random moves are more random
         self.move = None  # current move
         self.nsteps = {}  # dict-counter
         self.naccept = {} # dict-counter
-        #self.chems = [] # chemical symbols
         self.chems = chems # chemical symbols
         self.CNs = []   # coordination numbers
-        #self.conc = []     # concentration of components
         self.E = 1e32   # potential energy per atom
 
-        #self.A = 29     # Cu
-        #self.chems.append(self.A)
-        #self.chems.append( 29 ) # Cu
-        #self.conc.append( 0.47 )
-        #self.chems.append( 78 ) # Pt
-        #self.conc.append( 0.53 )
+        #~ #self.chems.append( 29 ) # Cu
+        #~ #self.conc.append( 0.47 )
+        #~ #self.chems.append( 78 ) # Pt
+        #~ #self.conc.append( 0.53 )
         for a1 in self.chems:
             for a2 in self.chems:
                 self.CNs.append(0)
-        self.a = 3.610;  # lattice constant of Copper
-        self.init_grid( 40 )
-        #self.GRID[...] = 0
-        n = int(self.L/2)
-        #s = 2
-        #self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n)] = self.chems[0]
-        #self.GRID[(n-s):(n+s), (n-s):(n+s), (n):(n+s)] = self.chems[1]
+        #~ self.a = 3.610;  # lattice constant of Copper
+        #~ self.init_grid( 40 )
+        #~ #self.GRID[...] = 0
+        #~ n = int(self.L/2)
+        #~ #s = 2
+        #~ #self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n)] = self.chems[0]
+        #~ #self.GRID[(n-s):(n+s), (n-s):(n+s), (n):(n+s)] = self.chems[1]
 
-        # hollow core-shell initial structure
-        s = 4
-        self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = self.chems[1]
-        s = 3
-        self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = self.chems[0]
-        s = 2
-        self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = 0
-        #self.GRID[(n+s), (n+s), (n+s)] = self.chems[1]
-        #self.GRID[(n-s), (n+s), (n+s)] = self.chems[1]
-        #self.GRID[(n+s), (n-s), (n+s)] = self.chems[1]
-        #self.GRID[(n+s), (n+s), (n-s)] = self.chems[1]
+        #~ # hollow core-shell initial structure
+        #~ s = 4
+        #~ self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = self.chems[1]
+        #~ s = 3
+        #~ self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = self.chems[0]
+        #~ s = 2
+        #~ self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = 0
+        #~ #self.GRID[(n+s), (n+s), (n+s)] = self.chems[1]
+        #~ #self.GRID[(n-s), (n+s), (n+s)] = self.chems[1]
+        #~ #self.GRID[(n+s), (n-s), (n+s)] = self.chems[1]
+        #~ #self.GRID[(n+s), (n+s), (n-s)] = self.chems[1]
 
-        self.attach_move( MoveDestroy(), 0.5 )
-        self.attach_move( MoveCreate(),  0.25 )
-        self.attach_move( MoveSwap(),    0.25 )
+        #~ self.attach_move( MoveDestroy(), 0.5 )
+        #~ self.attach_move( MoveCreate(),  0.25 )
+        #~ self.attach_move( MoveChange(),    0.25 )
 
         if isinstance(log, str):
             if log == '-':
@@ -147,7 +139,7 @@ class MC:
         #return self.moves[(np.random.uniform() < self.moves_weight).argmax()]
         self.move = self.weightedChoice(self.moves, self.moves_weight)
         # setup move:
-        if isinstance(self.move, MoveSwap):
+        if isinstance(self.move, MoveChange):
             found = False
             while not found: # find non-emty position
                 n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
@@ -173,10 +165,10 @@ class MC:
                 found = self.GRID[n1, n2, n3] > 0
             self.move.setup(self.GRID, n1, n2, n3)
         elif isinstance(self.move, MoveCreate):
+            found = False
             while not found: # find empty position bounded to non-empty
                 n1, n2, n3 = np.random.random_integers(0, self.L-1, 3)
                 found = (self.GRID[n1, n2, n3] == 0)and(self.NEIB[n1, n2, n3] > 0)
-            np.random.choice(self.chems, self.target_conc)
             A = self.weightedChoice(self.chems, self.target_conc)
             self.move.setup(self.GRID, n1, n2, n3, A)
         return self.move
@@ -521,7 +513,7 @@ class MoveCreate(Move):
     def __str__(self):
         return Move.__str__(self) + self.str_template % (self.n1, self.n2, self.n3, 0, self.Zatom)
 
-class MoveSwap(Move):
+class MoveChange(Move):
     def __init___(self):
         self.n1 = None
         self.n2 = None
@@ -544,10 +536,50 @@ class MoveSwap(Move):
         self.GRID[self.n1, self.n2, self.n3] = self.backup_value
 
     def __str__(self):
-        #('* Move: %s \t' % move.get_name())
-        #self.logfile.write(' Pos.: ['+str(move.n1)+','+str(move.n2)+','+str(move.n3)+'] \t')
         return Move.__str__(self) + self.str_template % (self.n1, self.n2, self.n3, self.backup_value, self.Zatom)
 
+class MoveChange13(MoveChange):
+    """ Change not only one atom, but types of neighboring atoms too """
+    backup_values = []
+    shifts = []
+
+    def __init__(self):
+        MoveChange.__init__(self)
+        for i in [0,1,2]:
+            for j in [0,1,2]:
+                for k in [0,1,2]:
+                    if MC.neib_matrix[i,j,k] > 0:
+                        self.shifts.append( [i-1, j-1, k-1] )
+
+    def __call__(self):
+        self.GRID[self.n1, self.n2, self.n3] = self.Zatom
+        for shift in self.shifts:
+            n1 = self.n1+shift[0]
+            n2 = self.n2+shift[1]
+            n3 = self.n3+shift[2]
+            if self.GRID[n1,n2,n3] > 0:
+                self.GRID[n1,n2,n3] = self.Zatom
+
+    def setup(self,  GRID, n1, n2, n3, Zatom):
+        Move.setup(self, GRID)
+        self.n1 = n1
+        self.n2 = n2
+        self.n3 = n3
+        self.Zatom = Zatom
+        assert GRID[n1,n2,n3] > 0, 'Use MoveCreate instead to fill empty place'
+        # store previous state:
+        self.backup_values.append(self.GRID[self.n1,self.n2,self.n3])
+        for shift in self.shifts:
+            self.backup_values.append(self.GRID[self.n1+shift[0],self.n2+shift[1],self.n3+shift[2]])
+
+    def reject(self):
+        self.GRID[self.n1, self.n2, self.n3] = self.backup_values[0]
+        for i in range(len(self.shifts)):
+            shift = self.shifts[i]
+            self.GRID[self.n1+shift[0],self.n2+shift[1],self.n3+shift[2]] = self.backup_values[i+1]
+
+    def __str__(self):
+        return Move.__str__(self) + self.str_template % (self.n1, self.n2, self.n3, self.backup_values[0], self.Zatom)
 
 class MoveShuffle(Move):
     def __init___(self):
@@ -592,9 +624,31 @@ class MoveShuffle(Move):
 
 if __name__ == '__main__':
     from ase.io import write
-    mc = MC(log="mc.log")
-    #mc = MC(log="-")
-    #mc.setup( [2], temperature=T)
+    mc = MC(log='-', chems=[29, 78])  # Cu, Pt
+    mc.set_lattice_constant(3.610);  # lattice constant of Copper
+    mc.init_grid( 40 )
+
+    # initial approximation:
+    n = int(mc.L/2)
+    # hollow core-shell initial structure
+    s = 4
+    mc.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = mc.chems[0]
+    s = 3
+    mc.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = mc.chems[1] # mc.chems[0]
+    s = 2
+    mc.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = mc.chems[1] # 0
+    #~ print('Test MoveChange13')
+    #~ move = MoveChange13()
+    #~ move.setup(mc.GRID, n, n, n, mc.chems[0])
+    #~ move()
+    #~ from ase.visualize import view
+    #~ view(mc.get_atoms())
+    #~ raw_input('Press enter')
+    #~ print('Test reject')
+    #~ move.reject()
+    #~ view(mc.get_atoms())
+    #~ raw_input('Press enter')
+
     target_CN = np.zeros(4)
     target_CN[0] = 2.8  # Cu-Cu
     target_CN[1] = 4.0  # Pt-Cu
@@ -627,15 +681,23 @@ if __name__ == '__main__':
         view(atoms)
         raw_input('Press enter')
 
-    step = 0
-    while step < 5:
-        #for i in range(20):
-        mc.clear_stats()
-        mc.set_targets( target_CN, [0.47, 0.53], temperature=1000/(2**step) )
-        mc.run(400)
-        atoms = mc.get_atoms()
-        write('xyz/dumb'+str(step)+'.cube', atoms)
-        step += 1
-
+    #~ step = 0
+    #~ while step < 5:
+        #~ #for i in range(20):
+        #~ mc.clear_stats()
+        #~ mc.set_targets( target_CN, [0.47, 0.53], temperature=1000/(2**step) )
+        #~ mc.run(400)
+        #~ atoms = mc.get_atoms()
+        #~ write('xyz/dumb'+str(step)+'.cube', atoms)
+        #~ step += 1
+    mc.attach_move(MoveCreate(), 0.1)
+    mc.attach_move(MoveDestroy(), 0.1)
+    mc.attach_move(MoveShuffle(), 0.3)
+    mc.attach_move(MoveChange(), 0.3)
+    mc.attach_move(MoveChange13(), 0.2)
+    print('Run for 100 steps')
+    mc.run(100)
+    from ase.visualize import view
+    view(mc.get_atoms())
 
     print('** See you! **')

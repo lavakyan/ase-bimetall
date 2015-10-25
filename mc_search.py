@@ -338,7 +338,7 @@ class MC:
                             +'\nAchieved CN: '+str(self.CNs)
                             +'\nTarget conc: '+str(self.target_conc)
                             +'\nAchieved conc: '+str(self.calc_conc())
-                            +'\nError function: '+str(self.penalty_function())
+                            +'\nPenalty function: '+str(self.penalty_function())
                             +'\n')
             self.logfile.write('Natoms = %i\n' % self.get_N())
             self.logfile.write('='*60+'\n')

@@ -6,18 +6,20 @@ Atomic Simulation Environment scripts for BIMETALLic nanoparticles
 
 The collection of my scripts for Atomic Simulation Environment (ASE) 
 used for study of bimetallic nanoparticles.
-The required ASE libraries are available at official site https://wiki.fysik.dtu.dk/ase/ under free license.
+The required ASE libraries are available at [official site](https://wiki.fysik.dtu.dk/ase/) under free license.
 
+Implemented (Reverse) Monte-Carlo method for the search of two-component structures based on the coordination numbers information.
+The MC class and Move nethods are heavily based on [ASAP3](https://wiki.fysik.dtu.dk/asap/) implementation.
 
 ## Scripts
 
-* analyzecn.py -- procedure-driven calculation of coordination numbers and similar quantities. *Should be replaced by object oriented version in future.*
+* analyzecn.py -- procedure-driven calculation of coordination numbers and similar quantities. *Should be replaced by object oriented version QSAR*;
 
-* coreshell.py -- procedures to build atomic clusters with particular architecture
+* qsar.py -- class for calculation of coordination numbers and similar quantities;
 
-* mc_search.py -- Monte-Carlo search of structures with predicted coordination numbers. Based on code from ASAP project (https://wiki.fysik.dtu.dk/asap/Monte%20Carlo%20simulations)
+* coreshell.py -- procedures to build atomic clusters with particular architecture;
 
-* qsar.py -- class for calculation of coordination numbers and similar quantities.
+* mc_search.py -- Monte-Carlo search of structures with known coordination numbers. Based on MC code from [ASAP](https://wiki.fysik.dtu.dk/asap/Monte%20Carlo%20simulations) project.
 
 
 ## Examples
@@ -53,3 +55,5 @@ print('CN_PtAg = {}'.format(qsar.CN_AB))
 print('CN_AgAg = {}'.format(qsar.CN_BB))
 print('CN_AgPt = {}'.format(qsar.CN_BA))
 ```
+
+* The Monte-Carlo example can be found in __main__ method in mc_search.py.

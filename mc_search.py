@@ -334,7 +334,7 @@ class MC:
         wCN = 1.0             # CN contrib.
         wE  = 0.0  # 0.001    # Energy contrib.
         wX  = 10.0            # Concentration  contrib.
-        wS  = 1.0             # Surface atom type penalty
+        wS  = 20.0             # Surface atom type penalty
         self.calc_neighbors()
         self.calc_CNs()
         #E = self.calc_energy()
@@ -356,9 +356,9 @@ class MC:
             # calc surface atoms ratio
             A = self.surface_atom_type
             NA_surf = (self.NEIB[(self.NEIB<12) & (self.GRID==A)]>0).sum()   # number of surface atoms type A
-            N_surf  = (self.NEIB[(self.NEIB<12)>0 & (self.GRID>0)]>0).sum()  # number of all surface atoms
+            N_surf  = (self.NEIB[(self.NEIB<12) & (self.GRID>0)]>0).sum()  # number of all surface atoms
             print('[ Surface: %i/%i ]'%(NA_surf, N_surf))
-            result += wS * NA_surf/N_surf
+            result += wS * (1-NA_surf/N_surf)
         return result
 
     def evaluate_move(self):

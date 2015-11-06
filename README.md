@@ -56,4 +56,4 @@ print('CN_AgAg = {}'.format(qsar.CN_BB))
 print('CN_AgPt = {}'.format(qsar.CN_BA))
 ```
 
-* The Monte-Carlo example can be found in __main__ method in mc_search.py.
+* The Monte-Carlo example can be found in `__main__` method in mc_search.py.

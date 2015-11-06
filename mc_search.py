@@ -41,7 +41,6 @@ class MC:
                             ])
 
     def __init__(self, log='-', chems=[]):
-        self.atoms = None
         self.moves = []   # available move types
         self.moves_weight = []  # some random moves are more random
         self.move = None  # current move
@@ -51,36 +50,9 @@ class MC:
         self.CNs = []   # coordination numbers
         self.E = 1e32   # potential energy per atom
 
-        #~ #self.chems.append( 29 ) # Cu
-        #~ #self.conc.append( 0.47 )
-        #~ #self.chems.append( 78 ) # Pt
-        #~ #self.conc.append( 0.53 )
         for a1 in self.chems:
             for a2 in self.chems:
                 self.CNs.append(0)
-        #~ self.a = 3.610;  # lattice constant of Copper
-        #~ self.init_grid( 40 )
-        #~ #self.GRID[...] = 0
-        #~ n = int(self.L/2)
-        #~ #s = 2
-        #~ #self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n)] = self.chems[0]
-        #~ #self.GRID[(n-s):(n+s), (n-s):(n+s), (n):(n+s)] = self.chems[1]
-
-        #~ # hollow core-shell initial structure
-        #~ s = 4
-        #~ self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = self.chems[1]
-        #~ s = 3
-        #~ self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = self.chems[0]
-        #~ s = 2
-        #~ self.GRID[(n-s):(n+s), (n-s):(n+s), (n-s):(n+s)] = 0
-        #~ #self.GRID[(n+s), (n+s), (n+s)] = self.chems[1]
-        #~ #self.GRID[(n-s), (n+s), (n+s)] = self.chems[1]
-        #~ #self.GRID[(n+s), (n-s), (n+s)] = self.chems[1]
-        #~ #self.GRID[(n+s), (n+s), (n-s)] = self.chems[1]
-
-        #~ self.attach_move( MoveDestroy(), 0.5 )
-        #~ self.attach_move( MoveCreate(),  0.25 )
-        #~ self.attach_move( MoveChange(),    0.25 )
 
         if isinstance(log, str):
             if log == '-':
@@ -95,8 +67,10 @@ class MC:
         self.GRID = np.zeros((self.L, self.L, self.L))
         self.NEIB = np.zeros((self.L, self.L, self.L))
 
-    def set_targets(self, target_CNs, target_conc, temperature=1000):
+    def set_targets(self, target_CNs, target_conc, temperature=1000, surface_atom_type = 0):
         self.temp = temperature
+        self.surface_atom_type = surface_atom_type
+        self.calc_energy = False # TODO use energy cals in a better way
 
         self.targetCNs = np.array(target_CNs)  # linked?
         #self.CNs = target_CNs[:]     # make a copy
@@ -116,7 +90,10 @@ class MC:
             for B in self.chems:
                 self.logfile.write('  conc[%i] = %f\n' % (B, self.target_conc[i]))
                 i += 1
-            self.logfile.write('Energy: ASAP3.EMT per atom -> minimum\n')
+            if self.calc_energy:
+                self.logfile.write('Energy: ASAP3.EMT per atom -> minimum\n')
+            if self.surface_atom_type > 0:
+                self.logfile.write('Surface atom type: %i\n'%self.surface_atom_type)
             self.logfile.write('='*49+'\n')
             self.logfile.flush()
 
@@ -354,9 +331,10 @@ class MC:
 
     def penalty_function(self):
         # a-la-Lagrange coefficients (weights)
-        wCN = 1             # CN contrib.
-        wE  = 0  # 0.001    # Energy contrib.
-        wX  = 1             # Concentration  contrib.
+        wCN = 1.0             # CN contrib.
+        wE  = 0.0  # 0.001    # Energy contrib.
+        wX  = 10.0            # Concentration  contrib.
+        wS  = 1.0             # Surface atom type penalty
         self.calc_neighbors()
         self.calc_CNs()
         #E = self.calc_energy()
@@ -374,6 +352,13 @@ class MC:
             curr_conc = self.calc_conc();
             #print(N, N_A, N_B)
             result += wX*( (self.target_conc[0] - curr_conc[0])**2 + (self.target_conc[1] - curr_conc[1])**2 )
+        if (wS > 0)and(self.surface_atom_type>0):
+            # calc surface atoms ratio
+            A = self.surface_atom_type
+            NA_surf = (self.NEIB[(self.NEIB<12) & (self.GRID==A)]>0).sum()   # number of surface atoms type A
+            N_surf  = (self.NEIB[(self.NEIB<12)>0 & (self.GRID>0)]>0).sum()  # number of all surface atoms
+            print('[ Surface: %i/%i ]'%(NA_surf, N_surf))
+            result += wS * NA_surf/N_surf
         return result
 
     def evaluate_move(self):

@@ -67,7 +67,7 @@ class MC:
         self.GRID = np.zeros((self.L, self.L, self.L))
         self.NEIB = np.zeros((self.L, self.L, self.L))
 
-    def set_targets(self, target_CNs, target_conc, temperature=1000, surface_atom_type = 0):
+    def set_targets(self, target_CNs, target_conc=[1], temperature=1000, surface_atom_type = 0):
         self.temp = temperature
         self.surface_atom_type = surface_atom_type
         self.calc_energy = False # TODO use energy cals in a better way
@@ -243,6 +243,8 @@ class MC:
         #print sum(nnn)*1.0 / len(atoms)
 
     def calc_conc(self):
+        if len(self.chems) == 1:
+            return 1 # only one chemical element
         N = (self.GRID > 0).sum()
         N_A = (self.GRID == self.chems[0]).sum()
         N_B = (self.GRID == self.chems[1]).sum()
@@ -348,7 +350,7 @@ class MC:
         result *= wCN
         if wE > 0:
             result += wE * self.calc_energy()
-        if wX > 0:
+        if (wX > 0)and(len(self.chems)>1):
             curr_conc = self.calc_conc();
             #print(N, N_A, N_B)
             result += wX*( (self.target_conc[0] - curr_conc[0])**2 + (self.target_conc[1] - curr_conc[1])**2 )

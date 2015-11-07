@@ -50,6 +50,12 @@ class MC:
         self.CNs = []   # coordination numbers
         self.E = 1e32   # potential energy per atom
 
+        # a-la-Lagrange coefficients (weights)
+        self.penalty_weight_CN = 1.0
+        self.penalty_weight_E =  0.001
+        self.penalty_weight_X =  10.0   # Concentration  contrib.
+        self.penalty_weight_S =  20.0   # Surface atom type penalty
+
         for a1 in self.chems:
             for a2 in self.chems:
                 self.CNs.append(0)
@@ -70,7 +76,6 @@ class MC:
     def set_targets(self, target_CNs, target_conc=[1], temperature=1000, surface_atom_type = 0):
         self.temp = temperature
         self.surface_atom_type = surface_atom_type
-        self.calc_energy = False # TODO use energy cals in a better way
 
         self.targetCNs = np.array(target_CNs)  # linked?
         #self.CNs = target_CNs[:]     # make a copy
@@ -90,9 +95,9 @@ class MC:
             for B in self.chems:
                 self.logfile.write('  conc[%i] = %f\n' % (B, self.target_conc[i]))
                 i += 1
-            if self.calc_energy:
+            if (self.penalty_weight_X>0)and(len(self.chems)>0):
                 self.logfile.write('Energy: ASAP3.EMT per atom -> minimum\n')
-            if self.surface_atom_type > 0:
+            if (self.surface_atom_type > 0)and(len(self.chems)>0):
                 self.logfile.write('Surface atom type: %i\n'%self.surface_atom_type)
             self.logfile.write('='*49+'\n')
             self.logfile.flush()
@@ -106,7 +111,7 @@ class MC:
         #    move.set_optimizer(self)
         self.moves.append(move)
         self.moves_weight.append(weight)
-        print('Weights: ',self.moves_weight)
+        #~ print('Weights: ',self.moves_weight)
         self.nsteps[move.get_name()] = 0
         self.naccept[move.get_name()] = 0
 
@@ -332,35 +337,30 @@ class MC:
         self.a = lattice_constant
 
     def penalty_function(self):
-        # a-la-Lagrange coefficients (weights)
-        wCN = 1.0             # CN contrib.
-        wE  = 0.0  # 0.001    # Energy contrib.
-        wX  = 10.0            # Concentration  contrib.
-        wS  = 20.0             # Surface atom type penalty
         self.calc_neighbors()
         self.calc_CNs()
         #E = self.calc_energy()
         #result = wCN * sum((np.array(self.targetCNs)-np.array(self.CNs))**2)
         # result = wCN * sum((self.targetCNs-self.CNs)**2) # -- last working version. Changed to treat skipping
         result = 0
-        if wCN > 0:
+        if self.penalty_weight_CN > 0:
             for i in range(len(self.targetCNs)):
                 if self.targetCNs[i] > 0:
                     result += (self.targetCNs[i]-self.CNs[i])**2
-        result *= wCN
-        if wE > 0:
-            result += wE * self.calc_energy()
-        if (wX > 0)and(len(self.chems)>1):
+        result *= self.penalty_weight_CN
+        if (self.penalty_weight_E > 0):
+            result += self.penalty_weight_E * self.calc_energy()
+        if (self.penalty_weight_X > 0)and(len(self.chems)>1):
             curr_conc = self.calc_conc();
             #print(N, N_A, N_B)
-            result += wX*( (self.target_conc[0] - curr_conc[0])**2 + (self.target_conc[1] - curr_conc[1])**2 )
-        if (wS > 0)and(self.surface_atom_type>0):
+            result += self.penalty_weight_X * ( (self.target_conc[0] - curr_conc[0])**2 + (self.target_conc[1] - curr_conc[1])**2 )
+        if (self.penalty_weight_S > 0)and(self.surface_atom_type>0):
             # calc surface atoms ratio
             A = self.surface_atom_type
             NA_surf = (self.NEIB[(self.NEIB<12) & (self.GRID==A)]>0).sum()   # number of surface atoms type A
             N_surf  = (self.NEIB[(self.NEIB<12) & (self.GRID>0)]>0).sum()  # number of all surface atoms
             print('[ Surface: %i/%i ]'%(NA_surf, N_surf))
-            result += wS * (1-NA_surf/N_surf)
+            result += self.penalty_weight_S * (1-NA_surf/N_surf)
         return result
 
     def evaluate_move(self):

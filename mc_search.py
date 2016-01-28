@@ -51,10 +51,10 @@ class MC:
         self.E = 1e32   # potential energy per atom
 
         # a-la-Lagrange coefficients (weights)
-        self.penalty_weight_CN = 1.0
-        self.penalty_weight_E =  0.001
-        self.penalty_weight_X =  10.0   # Concentration  contrib.
-        self.penalty_weight_S =  20.0   # Surface atom type penalty
+        self.penalty_weight_CN = 1000
+        self.penalty_weight_E =  1     #
+        self.penalty_weight_X =  100   # Concentration  contrib.
+        self.penalty_weight_S =  200   # Surface atom type penalty
 
         for a1 in self.chems:
             for a2 in self.chems:

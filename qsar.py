@@ -69,8 +69,9 @@ class QSAR:
         --------
         >>> atoms = FaceCenteredCubic('Ag',
           [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7,8,7], 4.09)
-        >>> [N, R, CN] = monoatomic(atoms)
-        >>> print "average CN is ", CN
+        >>> qsar = QSAR(atoms)
+        >>> qsar.monoatomic(R1=3.0)
+        >>> print "average CN is ", qsar.CN
         """
         N = len(self.atoms)
         nl = NeighborList( [0.5 * R1] * N, self_interaction=False, bothways=True )

@@ -13,7 +13,7 @@ class Hybrid(Calculator):
     implemented_properties = ['energy', 'forces']
 
     #def __init__(self, np_selection, sp_selection, np_calc = EMT(), sp_calc = , vacuum=None):
-    def __init__(self, np_species = ['Pt', 'Cu'], sp_species=['C'], np_calc = EMT(), sp_calc = BrennerPotential(), vacuum=None):
+    def __init__(self, np_species = ['Pt', 'Cu'], sp_species = ['C'], np_calc = EMT(), sp_calc = BrennerPotential(), inter_calc=None, vacuum=None, txt='-'):
         """ Hybrid calculator, mixing two many-body calculators: EMT and Brenner.
         The first is good ad description of metal nanoparticle,
         and the second is used for carbon support or matrix dynamics.
@@ -36,6 +36,7 @@ class Hybrid(Calculator):
 
         self.np_calc = np_calc
         self.sp_calc = sp_calc
+        self.ia_calc = inter_calc
         self.vacuum = vacuum
 
         self.np_selection = []
@@ -102,8 +103,14 @@ class Hybrid(Calculator):
         if self.vacuum:
             sp_forces -= sp_forces.mean(axis=0)
         forces[self.sp_selection] += sp_forces
-
-        ## 3. return result
+        ## 3. INTERACTION
+        if self.ia_calc is not None:
+            ienergy, inpforces, ispforces = self.ia_calc.calculate(
+                self.np_atoms, self.sp_atoms, (0, 0, 0))
+            forces[self.np_selection] += inpforces
+            forces[self.sp_selection] += ispforces
+            energy += ienergy
+        ## 4. return result
         self.results['energy'] = energy
         self.results['forces'] = forces
 

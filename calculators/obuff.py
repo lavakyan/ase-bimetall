@@ -11,8 +11,7 @@ from ase import units
 class OBUFF(Calculator):
     """Open Babel Universal Force Filed (UFF) calculator.
     Using openbabel.py bindings. """
-    #implemented_properties = ['energy', 'forces']
-    implemented_properties = ['energy']
+    implemented_properties = ['energy', 'forces']
 
     def __init__(self, filename='tmp_atoms.xyz'):
         """ Open Babel Universal Force Filed (UFF) calculator.
@@ -27,7 +26,7 @@ class OBUFF(Calculator):
         self.filename = filename
         self.file_format = 'xyz'
 
-        self.ob_mol = None
+        self.mol = None
         self.ff = 0
         openbabel.OBConversion()  # this magic function should be called before FF seaech...
         self.ff = openbabel.OBForceField.FindForceField("UFF")  # TODO: allow to use of other FF ?
@@ -37,22 +36,51 @@ class OBUFF(Calculator):
 
         Calculator.__init__(self)
 
+    def _shift_OBvec(self, vec, iaxis, d):
+        if iaxis == 0:
+            x = vec.GetX()
+            vec.SetX(x+d)
+        elif iaxis == 1:
+            y = vec.GetY()
+            vec.SetY(y+d)
+        elif iaxis == 2:
+            z = vec.GetZ()
+            vec.SetZ(z+d)
+        return vec
+
     def calculate(self, atoms, properties, system_changes):
         Calculator.calculate(self, atoms, properties, system_changes)
 
-        energy = self.ff.Energy()
+        if 'energy' in properties:
+            energy = self.ff.Energy()
+            self.results['energy'] = energy * units.kcal / units.mol
 
-        self.results['energy'] = energy*units.kcal/units.mol
-        #self.results['forces'] = forces
+        if 'forces' in properties:
+            d = 0.001
+            N = len(atoms)
+            F_ai = np.zeros( (N, 3) )
+            for iatom in xrange(N):
+                for iaxis in xrange(3):
+                    obatom = self.mol.GetAtom( 1 + iatom )
+                    vec = obatom.GetVector()
+                    obatom.SetVector( self._shift_OBvec(vec, iaxis, d) )
+                    self.ff.Setup(self.mol)
+                    eplus = self.ff.Energy() * units.kcal/units.mol
+                    obatom.SetVector( self._shift_OBvec(vec, iaxis, -2*d) )
+                    self.ff.Setup( self.mol )
+                    eminus = self.ff.Energy() * units.kcal/units.mol
+                    obatom.SetVector( self._shift_OBvec(vec, iaxis, d) ) # putin it back
+                    F_ai[iatom, iaxis] = (eminus - eplus) / (2 * d)
+            self.results['forces'] = F_ai
 
-    def set_atoms(self, atoms):          # attach ?
+    def set_atoms(self, atoms):
         """ put data in OB object """
         self.atoms = atoms        # .copy() ?
         write(self.filename, self.atoms)
 
         # initialize OBMolecule
         self.mol = openbabel.OBMol()
-
+        print('Atoms set')
         # read atoms from file:
         conv = openbabel.OBConversion()
         #format = conv.FormatFromExt(self.filename)
@@ -72,6 +100,6 @@ if __name__ == '__main__':
     atoms = molecule('CH3')
     calc = OBUFF()
     atoms.set_calculator(calc)
-
     print ("Energy %f eV"% atoms.get_potential_energy())
+    print (atoms.get_forces())
 

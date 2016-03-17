@@ -8,12 +8,12 @@ from ase import units
 import sys
 
 
-class OBUFF(Calculator):
+class OBcalc(Calculator):
     """Open Babel Universal Force Filed (UFF) calculator.
     Using openbabel.py bindings. """
     implemented_properties = ['energy', 'forces']
 
-    def __init__(self, filename='/tmp/obUFF_atoms.xyz', logfile=None):
+    def __init__(self, forcefield='UFF', filename='/tmp/obcalc_atoms.xyz', logfile=None):
         """ Open Babel Universal Force Filed (UFF) calculator.
         Parameters:
         filename: path to a file where cooridnates will be stored to transfer to OB
@@ -48,8 +48,8 @@ class OBUFF(Calculator):
         self.mol = None
         self.ff = 0
         openbabel.OBConversion()  # this magic function should be called before FF search...
-        self.ff = openbabel.OBForceField.FindForceField('UFF')  # TODO: allow to use of other FF ?
-        self.name = 'OB_UFF'
+        self.ff = openbabel.OBForceField.FindForceField( forcefield )
+        self.name = 'OB_%s' % forcefield
         if (self.ff == 0):
             print('Could not find forcefield')
         self.ff.SetLogLevel(openbabel.OBFF_LOGLVL_HIGH)
@@ -79,7 +79,7 @@ class OBUFF(Calculator):
             energy = self.ff.Energy()
             # energy units are kcal/mole according to http://forums.openbabel.org/Energy-units-td1574278.html
             # and in Avogadro they are reported as kJ/mole ...
-            self.results['energy'] = energy * units.kcal / units.mol
+            self.results['energy'] = energy * units.kJ / units.mol
 
         if 'forces' in properties:
             d = 0.001
@@ -91,11 +91,11 @@ class OBUFF(Calculator):
 
                     obatom.SetVector( self._shift_OBvec(vec, iaxis, d) )
                     self.ff.Setup( self.mol )
-                    eplus = self.ff.Energy() * units.kcal/units.mol
+                    eplus = self.ff.Energy() * units.kJ/units.mol
 
                     obatom.SetVector( self._shift_OBvec(vec, iaxis, -2*d) )
                     self.ff.Setup( self.mol )
-                    eminus = self.ff.Energy() * units.kcal/units.mol
+                    eminus = self.ff.Energy() * units.kJ/units.mol
 
                     obatom.SetVector( self._shift_OBvec(vec, iaxis, d) ) # put it back
                     F_ai[iatom, iaxis] = (eminus - eplus) / (2 * d)
@@ -145,12 +145,17 @@ if __name__ == '__main__':
     from ase import Atoms
     from ase.structure import molecule
     from ase.visualize import view
+    from ase.data.g2_1_ref import atomization
+    from ase.data.g2 import data
 
-    atoms = molecule('CH3')
-    #~ from ase.io import read
-    #~ atoms = read( 'alPtO2 1layer PBE opt.pdb' )
-    calc = OBUFF(logfile='-')
-    atoms.set_calculator(calc)
-    print ('  Energy %f eV'% atoms.get_potential_energy())
-    print (atoms.get_forces())
-
+    for key, value in atomization.iteritems():
+        if key in data:
+            atoms = molecule( key )
+            calc = OBcalc(logfile='-', forcefield='ghemical')
+            atoms.set_calculator(calc)
+            print ('  Molecule: %s '% atoms.get_chemical_formula() )
+            Eexp = value[0]*43.364*1e-3
+            print ('    Exp. energy %.3f eV' % (Eexp) )
+            print ('    OB   energy %.3f eV' % atoms.get_potential_energy() )
+            ratio = (Eexp / atoms.get_potential_energy())
+            print ('ratio: %f' %  ratio)

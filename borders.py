@@ -1,14 +1,13 @@
-"""Freeze atoms at bounds in molecular dynamics."""
+"""Implement special border conditions for molecular dynamics."""
 
 import weakref
 # ase.parallel imported in __init__
 
-class Freezer:
+class Freeze:
     """Class for freezing atoms close to computation cell
     in molecular dynamics simulations.
 
     Parameters:
-    dyn:           The dynamics.  Only a weak reference is kept.
     atoms:         The atoms.
     margin:        define freezine region at the cell bounds, Angstr.
     """
@@ -17,14 +16,14 @@ class Freezer:
     def __init__(self, atoms, margin=2):
         import ase.parallel
         if ase.parallel.rank > 0:
-            logfile="/dev/null"  # Only log on master
+            logfile='/dev/null'  # Only log on master
         #~ if hasattr(dyn, "get_time"):
             #~ self.dyn = weakref.proxy(dyn)
         #~ else:
             #~ self.dyn = None
-        self.atoms = atoms
+        self.atoms  = atoms
         self.margin = margin
-        self.natoms = atoms.get_number_of_atoms()
+        #self.natoms = atoms.get_number_of_atoms()
 
     def __call__(self):
         # TODO: extend for non-cubic cells
@@ -36,6 +35,23 @@ class Freezer:
                 if atom.position[i] > cell[i,i]-self.margin:
                     atom.momentum[i] = 0
 
+class Mirror(Freeze):
+    """Class for reflection of atoms from computation cell
+    in molecular dynamics simulations.
+
+    Parameters:
+    atoms:         The atoms.
+    margin:        define freezine region at the cell bounds, Angstr.
+    """
+    def __call__(self):
+        # TODO: extend for non-cubic cells
+        cell = atoms.cell
+        for atom in atoms:
+            for i in range(3):
+                if atom.position[i] < self.margin:
+                    atom.momentum[i] = abs(atom.momentum[i])
+                if atom.position[i] > cell[i,i]-self.margin:
+                    atom.momentum[i] = -abs(atom.momentum[i])
 
 if __name__ == '__main__':
     # test
@@ -55,9 +71,10 @@ if __name__ == '__main__':
     Stationary(atoms)
     ZeroRotation(atoms)
     dyn = NVTBerendsen(atoms, 1*fs, T, 0.5, logfile='-')
-    traj = Trajectory("freezer_test.traj", "w", atoms)
+    traj = Trajectory('freezer_test.traj', 'w', atoms)
     dyn.attach(traj.write, interval=10)
-    fr =  Freezer(atoms)
+    #fr =  Freeze(atoms)
+    fr =  Mirror(atoms)
     dyn.attach( fr, interval=20 )
     dyn.run(5000)
     traj.close()

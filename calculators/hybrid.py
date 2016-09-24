@@ -14,8 +14,8 @@ class Hybrid(Calculator):
 
     #def __init__(self, np_selection, sp_selection, np_calc = EMT(), sp_calc = , vacuum=None):
     def __init__(self, np_species = ['Pt', 'Cu'], sp_species = ['C'], np_calc = EMT(), sp_calc = BrennerPotential(), inter_calc=None, vacuum=None, txt='-'):
-        """ Hybrid calculator, mixing two many-body calculators: EMT and Brenner.
-        The first is good ad description of metal nanoparticle,
+        """ Hybrid calculator, mixing two many-body calculators, i.e. EMT and Brenner.
+        The first is good for description of metal nanoparticle,
         and the second is used for carbon support or matrix dynamics.
 
         The energy is calculated as::
@@ -116,18 +116,68 @@ class Hybrid(Calculator):
 
     def set_atoms(self, atoms):
         """ calculate selections based on NP and support species ingfo """
-        symbols = np.array(atoms.get_chemical_symbols())
-        self.np_selection = (symbols == '') # all are False
-        for spec in self.np_species:
-            self.np_selection += (symbols==spec)
-        self.sp_selection = (symbols == '') # all are False
-        for spec in self.sp_species:
-            self.sp_selection += (symbols==spec)
+        if (self.np_species and self.sp_species):   # not empty lists
+            symbols = np.array(atoms.get_chemical_symbols())
+            self.np_selection = (symbols == '') # all are False
+            for spec in self.np_species:
+                self.np_selection += (symbols==spec)
+            self.sp_selection = (symbols == '') # all are False
+            for spec in self.sp_species:
+                self.sp_selection += (symbols==spec)
+        if (self.sp_selection and self.np_selection):
+            #if self.np_atoms is None:
+            self.initialize_np(atoms)
+            #if self.sp_atoms is None:
+            self.initialize_sp(atoms)
+        else:
+            print('Warning: NO SELECTION!')
 
-        #if self.np_atoms is None:
-        self.initialize_np(atoms)
-        #if self.sp_atoms is None:
-        self.initialize_sp(atoms)
+
+#~ class LJInteractions:
+    #~ name = 'LJ'
+#~
+    #~ def __init__(self, parameters):
+        #~ """Lennard-Jones type explicit interaction.
+        #~ Heavily based on /ase/calculators/qmmm.py version
+#~
+        #~ parameters: dict
+            #~ Mapping from pair of atoms to tuple containing epsilon, sigma
+            #~ and cutoff radius for that pair.
+#~
+        #~ Example::
+            #~ lj = LJInteractions({('Ar', 'Ar'): (eps, sigma, cutoff)})
+#~
+        #~ """
+        #~ self.parameters = {}
+        #~ for (symbol1, symbol2), (epsilon, sigma, cutoff) in parameters.items():
+            #~ Z1 = atomic_numbers[symbol1]
+            #~ Z2 = atomic_numbers[symbol2]
+            #~ self.parameters[(Z1, Z2)] = epsilon, sigma, cutoff
+            #~ self.parameters[(Z2, Z1)] = epsilon, sigma, cutoff
+#~
+    #~ def calculate(self, qmatoms, mmatoms, shift):
+        #~ qmforces = np.zeros_like(qmatoms.positions)
+        #~ mmforces = np.zeros_like(mmatoms.positions)
+        #~ species = set(mmatoms.numbers)
+        #~ energy = 0.0
+        #~ for R1, Z1, F1 in zip(qmatoms.positions, qmatoms.numbers, qmforces):
+            #~ for Z2 in species:
+                #~ if (Z1, Z2) not in self.parameters:
+                    #~ continue
+                #~ epsilon, sigma, cutoff = self.parameters[(Z1, Z2)]
+                #~ mask = (mmatoms.numbers == Z2)
+                #~ D = mmatoms.positions[mask] + shift - R1
+                #~ wrap(D, mmatoms.cell.diagonal(), mmatoms.pbc)
+                #~ d2 = (D**2).sum(1)
+                #~ if d2 > cutoff**2:
+                    #~ continue
+                #~ c6 = (sigma**2 / d2)**3
+                #~ c12 = c6**2
+                #~ energy += 4 * epsilon * (c12 - c6).sum()
+                #~ f = 24 * epsilon * ((2 * c12 - c6) / d2)[:, np.newaxis] * D
+                #~ F1 -= f.sum(0)
+                #~ mmforces[mask] += f
+        #~ return energy, qmforces, mmforces
 
 
 if __name__ == '__main__':

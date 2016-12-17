@@ -193,7 +193,7 @@ def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):
         # save the count of positions at each layer:
         positions.append(n_tag - sum(positions[0:n_shell]))
     ## populate layers ##
-    chems = atoms.get_chemical_symbols(reduce=False)
+    chems = atoms.get_chemical_symbols()
     n_type_a = 0  # number of changes B -> A
     if (n_tag < n_atoms * target_x)and(n_depth == -1):
         # raise exception?

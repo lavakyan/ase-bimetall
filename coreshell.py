@@ -5,7 +5,8 @@ import random
 import copy
 from math import sqrt
 from ase.calculators.neighborlist import NeighborList
-from ase.cluster.cubic import FaceCenteredCubic
+#from ase.cluster.cubic import FaceCenteredCubic
+import numpy as np
 
 from qsar import QSAR
 
@@ -221,6 +222,101 @@ def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):
     return atoms
 
 
+def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1):
+    r"""This routine generates cluster with ideal core-shell architecture,
+    so that atoms of type_a are placed on the surface
+    and atoms of type_b are forming the core of nanoparticle.
+    The 'surface' of nanoparticle is defined as atoms
+    with unfinished first coordination shell.
+      Used algorithm without need for explicit knowledge of
+    far coordination shells parameters, as it was required in CoreShellFCC(..)
+
+    Parameters
+    ----------
+    atoms: ase.Atoms
+        ase Atoms object, containing atomic cluster.
+    type_a: string
+        Symbol of chemical element to be placed on the shell.
+    type_b: string
+        Symbol of chemical element to be placed in the core.
+    ratio: float
+        Guards the number of shell atoms, type_a:type_b = ratio:(1-ratio)
+    R_min: float
+        Typical bond length. Neighboring atoms within this value are counted
+        as coordination numbers.
+        Default is 3.0.
+    CN_max: float
+        Maximum possible coordination number (bulk coordination number).
+        Default is 12.
+    n_depth: int
+        Number of layers of the shell formed by atoms ratio.
+        Default value -1 is ignored and n_depth is calculated according
+        ratio. If n_depth is set then value of ratio is ignored.
+
+    Returns
+    -------
+        Function returns ASE atoms object which
+        contains bimetallic core-shell cluster
+
+    Example
+    --------
+    >>> atoms = FaceCenteredCubic('Ag',
+      [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7,8,7], 4.09)
+    >>> atoms = CoreShellCN(atoms, 'Pt', 'Ag', 0.5)
+    >>> view(atoms)
+    """
+    # 0 < ratio < 1
+    target_x = ratio
+    if n_depth != -1:
+        target_x = 1
+
+    n_atoms = len(atoms)
+    n_a = (np.array(atoms.get_chemical_symbols()) == type_a).sum()
+    #n_b = (atoms.get_chemical_symbols() == type_b).sum()
+    #print n_a
+
+    n_shell = 0  # depth of the shell
+    while (n_a < n_atoms * target_x):
+        n_shell += 1
+        print "shell: ", n_shell
+
+        if (n_depth != -1)and(n_shell > n_depth):
+            break
+
+        neiblist = NeighborList( [ R_min ] * n_atoms,
+          self_interaction=False, bothways=True )
+        neiblist.build( atoms )
+
+        for i in xrange( n_atoms ):
+            indeces, offsets = neiblist.get_neighbors(i)
+            if (atoms[i].symbol == type_b):
+                CN_temp = 0
+                for ii in indeces:
+                    if atoms[ii].symbol == type_b:
+                        CN_temp += 1
+                #print "CN_temp: ", CN_temp
+                if (CN_temp < CN_max):
+                    # coord shell is not full, swap type to type_a!
+                    atoms[i].tag = n_shell # not swap yet, but mark
+
+        # swap atom types now. Stop if target ratio achieved
+        for atom in atoms:
+            if (atom.tag > 0)&(atom.symbol == type_b):
+                if n_a < n_atoms * target_x:
+                    atom.symbol = type_a
+                    n_a += 1
+                    print "n_A: ", n_a
+    # end while
+
+    # check number of atoms
+    checkn_a = 0
+    for element in atoms.get_chemical_symbols():
+        if element == type_a:
+            checkn_a += 1
+    #print "Should be equal: ", n_a, checkn_a
+    assert n_a == checkn_a
+    return atoms
+
 def hollowCore(atoms, a_cell, radius=3):
     r"""This routine generates cluster with
     empty core.
@@ -255,7 +351,6 @@ def hollowCore(atoms, a_cell, radius=3):
         return (P1[0]-P2[0])**2+(P1[1]-P2[1])**2+(P1[2]-P2[2])**2
 
     assert radius > 0
-    n_atoms = len(atoms)
     Xc = (min(atoms.positions[:,0])+max(atoms.positions[:,0]))/2.0
     Yc = (min(atoms.positions[:,1])+max(atoms.positions[:,1]))/2.0
     Zc = (min(atoms.positions[:,2])+max(atoms.positions[:,2]))/2.0
@@ -269,8 +364,6 @@ def hollowCore(atoms, a_cell, radius=3):
             i += 1
     return atoms
 
-
-
 def randomize_biatom(atoms, type_a, type_b, ratio):
     """ replace randomly to acheive target conc """
     n_A = 0
@@ -281,7 +374,7 @@ def randomize_biatom(atoms, type_a, type_b, ratio):
         elif atom.symbol == type_b:
             n_B += 1
         else:
-            raise Error('Extra chemical element %s!'%atom.chemical_symbol)
+            raise Exception('Extra chemical element %s!'%atom.chemical_symbol)
     #print n_A, n_B
     N = len(atoms)
     #print "conc",  n_A *1.0 / N
@@ -308,7 +401,7 @@ def randomize_biatom_13(atoms, type_a, type_b, ratio):
         elif atom.symbol == type_b:
             n_B += 1
         else:
-            raise Error('Extra chemical element %s!'%atom.chemical_symbol)
+            raise Exception('Extra chemical element %s!'%atom.chemical_symbol)
     #print n_A, n_B
     N = len(atoms)
     nl = NeighborList([1.5]*N, self_interaction=False, bothways=True)  # 2*1.5=3 Angstr. radius
@@ -366,7 +459,8 @@ if __name__ == '__main__':
     #atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.0, a_cell=4.09, n_depth=1)
     #atoms = randomize_biatom(atoms, 'Pt', 'Ag', ratio=0.6)
     #atoms = randomize_biatom_13(atoms, 'Pt', 'Ag', ratio=0.6)
-    atoms = hollowCore(atoms, 4.09, 5)
+    #atoms = hollowCore(atoms, 4.09, 5)
+    atoms = CoreShellCN( atoms, 'Pt', 'Ag', 0.5 )
 
     from ase.visualize import view
     view(atoms)

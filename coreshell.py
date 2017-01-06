@@ -5,7 +5,7 @@ import random
 import copy
 from math import sqrt
 from ase.calculators.neighborlist import NeighborList
-#from ase.cluster.cubic import FaceCenteredCubic
+from ase.cluster.cubic import FaceCenteredCubic
 import numpy as np
 
 from qsar import QSAR
@@ -305,7 +305,7 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
                 if n_a < n_atoms * target_x:
                     atom.symbol = type_a
                     n_a += 1
-                    print "n_A: ", n_a
+                    #print "n_A: ", n_a
     # end while
 
     # check number of atoms
@@ -347,7 +347,7 @@ def hollowCore(atoms, a_cell, radius=3):
     >>> atoms = hollowCore(atoms, 4.09, 5)
     >>> view(atoms)
     """
-    def dist2( P1, P2):
+    def dist2(P1, P2):
         return (P1[0]-P2[0])**2+(P1[1]-P2[1])**2+(P1[2]-P2[2])**2
 
     assert radius > 0
@@ -441,15 +441,98 @@ def randomize_userfunc(atoms, new_type, user_func):
 
     return atoms
 
+def intermetallideFCC(atoms, A, B, cellconstant):
+    """
+    Replace atoms type A by atom type B to obtain
+    intermetallide FCC structure.
+    """
+    x0 = atoms[0].position[0]
+    y0 = atoms[0].position[1]
+    z0 = atoms[0].position[2]
+    for atom in atoms:
+        if atom.symbol == A:
+            x = (atom.position[0] - x0) * 2 / cellconstant
+            y = (atom.position[1] - y0) * 2 / cellconstant
+            z = (atom.position[2] - z0) * 2 / cellconstant
+            # for face centered cubic:
+            n1 = round(0.5 * (-x+y+z))
+            n2 = round(0.5 * ( x-y+z))
+            n3 = round(0.5 * ( x+y-z))
+            # for simple cubic:
+            #    n1 = 0.5 * x
+            #    n2 = 0.5 * y
+            #    n3 = 0.5 * z
+            #print n1, n2, n3
+            if ( n1 + n2 + n3 ) % 2 == 0:
+                atom.symbol = B
+    #TODO: check and show warning if no changes were made
+    return atoms
+
+def hop_shuffle(atoms, A, B, count=10, R=3.0):
+    """
+    Shuffle atoms in given structure
+    by swapping atom types within first coordination shell
+
+    Parameters
+    ----------
+    atoms: ase.Atoms
+        ase Atoms object, containing atomic cluster.
+    A, B: string
+        symbols of atoms to swap
+    count: integer
+        number of shuffles
+    R: float
+        radius of coordination shell, were atoms will be swapped
+
+    Returns
+    -------
+        Function returns ASE atoms object whith
+        shuffled atoms
+    """
+    n_atoms = len(atoms)
+    nswaps = 0
+    neiblist = NeighborList( [ R ] * n_atoms,
+                             self_interaction=False,
+                             bothways=True )
+    neiblist.build( atoms )
+    rnd = random.Random()
+    while nswaps < count:
+        i = rnd.randint(0, n_atoms-1)
+        indeces, offsets = neiblist.get_neighbors( i )
+        if (atoms[i].symbol == B):
+            candidates = []
+            for ii in indeces:
+                if atoms[ii].symbol == A:
+                    candidates.append( ii )
+            if len(candidates) > 0:
+                j = random.choice(candidates)
+                atoms[i].symbol = A
+                atoms[j].symbol = B
+                nswaps += 1
+                neiblist.build( atoms )
+        elif (atoms[i].symbol == B):
+            candidates = []
+            for ii in indeces:
+                if atoms[ii].symbol == A:
+                    candidates.append( ii )
+            if len(candidates) > 0:
+                j = random.choice(candidates)
+                atoms[i].symbol = B
+                atoms[j].symbol = A
+                nswaps += 1
+                neiblist.build( atoms )
+    return atoms
+
+
 if __name__ == '__main__':
     #
+    from ase.visualize import view
     # test sphericalFCC
-    atoms = sphericalFCC('Ag', 4.09, 8)
-    #from ase.visualize import view
+    #atoms = sphericalFCC('Ag', 4.09, 8)
     #view(atoms)
     #raw_input('press enter')
     #
-    from ase.cluster.cubic import FaceCenteredCubic
+    #from ase.cluster.cubic import FaceCenteredCubic
     atoms = FaceCenteredCubic(
       'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)
     #
@@ -460,7 +543,7 @@ if __name__ == '__main__':
     #atoms = randomize_biatom(atoms, 'Pt', 'Ag', ratio=0.6)
     #atoms = randomize_biatom_13(atoms, 'Pt', 'Ag', ratio=0.6)
     #atoms = hollowCore(atoms, 4.09, 5)
-    atoms = CoreShellCN( atoms, 'Pt', 'Ag', 0.5 )
-
-    from ase.visualize import view
+    #atoms = CoreShellCN( atoms, 'Pt', 'Ag', 0.5 )
+    atoms = intermetallideFCC( atoms, 'Ag', 'Pt', 4.09 )
+    atoms = hop_shuffle( atoms, 'Pt', 'Ag', count=10)
     view(atoms)

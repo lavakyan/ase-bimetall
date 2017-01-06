@@ -5,7 +5,7 @@ class ConstantForce(FixConstraint):
     """Applies a constant force to an atom."""
 
     def __init__(self, a, force):
-        """ Force applied to ant atom a
+        """ Force applied to an atom
 
         Parameters
         ----------

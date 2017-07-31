@@ -374,7 +374,7 @@ def randomize_biatom(atoms, type_a, type_b, ratio):
         elif atom.symbol == type_b:
             n_B += 1
         else:
-            raise Exception('Extra chemical element %s!'%atom.chemical_symbol)
+            raise Exception('Extra chemical element %s!'%atom.symbol)
     #print n_A, n_B
     N = len(atoms)
     #print "conc",  n_A *1.0 / N
@@ -401,7 +401,7 @@ def randomize_biatom_13(atoms, type_a, type_b, ratio):
         elif atom.symbol == type_b:
             n_B += 1
         else:
-            raise Exception('Extra chemical element %s!'%atom.chemical_symbol)
+            raise Exception('Extra chemical element %s!'%atom.symbol)
     #print n_A, n_B
     N = len(atoms)
     nl = NeighborList([1.5]*N, self_interaction=False, bothways=True)  # 2*1.5=3 Angstr. radius

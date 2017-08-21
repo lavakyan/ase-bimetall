@@ -330,7 +330,7 @@ def hollowCore(atoms, a_cell, radius=3):
         Required for calculation of neighbor distances in for infinite
         crystal.
     radius: int
-        controlls the size of emty region in the center of cluster.
+        controlls the size of empty region in the center of cluster.
 
     Returns
     -------

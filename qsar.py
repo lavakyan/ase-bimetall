@@ -6,7 +6,7 @@
   [Phys. Rev. 1965, 138, A1384-A1389].
   * QSAR volume, etc
 """
-
+from __future__ import print_function
 import os, sys
 import numpy as np
 from math import sqrt
@@ -18,7 +18,7 @@ class QSAR:
         self.atoms = atoms.copy()
         #self.atoms.center()
         self.chems = [] # chemical symbols
-        self.CNs = []   # coordination numbers
+        self.CNs   = np.array([]) # coordination numbers
         if isinstance(log, str):
             if log == '-':
                 self.logfile = sys.stdout
@@ -73,6 +73,8 @@ class QSAR:
         >>> qsar.monoatomic(R1=3.0)
         >>> print "average CN is ", qsar.CN
         """
+        self.chems = ['*'] # any element. For now used for report only
+
         N = len(self.atoms)
         nl = NeighborList( [0.5 * R1] * N, self_interaction=False, bothways=True )
         nl.build(self.atoms)
@@ -100,9 +102,10 @@ class QSAR:
         else:
             E = -1
         #return N, R, CN, E, Ncore, CNshell
-        self.N = N
+        self.N = N #TODO: use array property CNs
         self.R = R
         self.CN = CN
+        self.CNs = np.array([[CN]])
         self.E = E
         self.Ncore = Ncore
         self.CNshell = CNshell
@@ -178,6 +181,8 @@ class QSAR:
           biatomic(atoms, 'Pt', 'Ag')
         >>> print "Short range order parameter: ", etha
         """
+        self.chems = [A, B] # for now used for report only
+
         N = len(self.atoms)
         nA = 0
         nB = 0
@@ -218,7 +223,7 @@ class QSAR:
                     elif  self.atoms[ii].symbol == A:
                         CN_BA_temp += 1
                     else:
-                        print "Warning: unknown atom type %s. It will not be counted!"%self.atoms[ii].symbol
+                        print("Warning: unknown atom type %s. It will not be counted!"%self.atoms[ii].symbol)
                 CN_BB += CN_BB_temp
                 CN_BA += CN_BA_temp
                 if len(indeces) < 12:
@@ -238,7 +243,7 @@ class QSAR:
                     elif self.atoms[i].symbol == B:
                         CN_AB_temp += 1
                     else:
-                        print "Warning: unknown atom type %s. It will not be counted!"%self.atoms[i].symbol
+                        print("Warning: unknown atom type %s. It will not be counted!"%self.atoms[i].symbol)
                 CN_AA += CN_AA_temp
                 CN_AB += CN_AB_temp
                 if len(indeces) < 12:
@@ -250,7 +255,7 @@ class QSAR:
                     NAcore += 1
             else:
                 #raise Exception("Un")
-                print "Warning: unknown atom type %s. It will not be counted!"%self.atoms[iatom].symbol
+                print("Warning: unknown atom type %s. It will not be counted!"%self.atoms[iatom].symbol)
         # averaging:
         CN_AA = CN_AA * 1.0 / nA
         CN_AB = CN_AB * 1.0 / nA
@@ -292,10 +297,11 @@ class QSAR:
         self.N = N
         self.nA = nA
         self.R = R
-        self.CN_AA = CN_AA
+        self.CN_AA = CN_AA  #TODO: use only arrays of CNs
         self.CN_AB = CN_AB
         self.CN_BB = CN_BB
         self.CN_BA = CN_BA
+        self.CNs = np.array([ [CN_AA, CN_AB], [CN_BA, CN_BB] ])
         self.etha = etha
         self.E = E
         self.NAcore = NAcore
@@ -366,6 +372,12 @@ class QSAR:
         return Rs
         #return xs*xs+ys*ys+zs*zs
 
+    def report_CNs(self, header = 'Coordination numbers:'):
+        s = header+'\r\n'
+        for i, A in enumerate(self.chems):
+            for j, B in enumerate(self.chems):
+                s += '\t%s-%s\t%.3f\r\n' % (A, B, self.CNs[i][j])
+        return s
 
 
 if __name__ == '__main__':
@@ -382,13 +394,13 @@ if __name__ == '__main__':
     #from ase.visualize import view
     #view(atoms)
     qsar = QSAR(atoms)
-
+    #qsar.report_CNs()
     qsar.monoatomic()
     print('N \t R \t CN \t E \t Ncore \t C \t CNshell')
     print('{}\t{}\t{:.3f}\t{}\t{}\t{:.3f}\t{:.3f}'.format(
       qsar.N, qsar.R, qsar.CN, qsar.E, qsar.Ncore, (float(qsar.Ncore) / qsar.N), qsar.CNshell
     ))
-
+    print(qsar.report_CNs())
     #exit(0)
     print('\nTest biatomic')
     #import ase
@@ -402,8 +414,7 @@ if __name__ == '__main__':
 
     from ase.visualize import view
     view(atoms)
-    #N, nA, R, CN_AA, CN_AB, CN_BB, CN_BA, etha, E, NAcore, \
-    #  NBcore, CNshellAA, CNshellAB, CNshellBB, CNshellBA \
+
     qsar = QSAR(atoms)
     qsar.biatomic('Pt', 'Ag')
     print('N = {}'.format(qsar.N))
@@ -414,6 +425,8 @@ if __name__ == '__main__':
     print('CN_AB = {}'.format(qsar.CN_AB))
     print('CN_BB = {}'.format(qsar.CN_BB))
     print('CN_BA = {}'.format(qsar.CN_BA))
+    print(qsar.report_CNs())
+
     print('etha = {}'.format(qsar.etha))
     print(' E = {}'.format(qsar.E))
     print('NAcore = {}'.format(qsar.NAcore))
@@ -444,13 +457,13 @@ if __name__ == '__main__':
     #raw_input("Press enter")
 
     if False:
-                print '# Radial distribution in NP'
-                print '# All atoms'
+                print('# Radial distribution in NP')
+                print('# All atoms')
                 for value in qsar.atom_distances('all'):
-                        print value
-                print '# Ag'
+                        print(value)
+                print('# Ag')
                 for value in qsar.atom_distances('Ag'):
-                        print value
+                        print(value)
                 #print '# Pt'
                 #for value in qsar.atom_distances('Pt'):
                 #     print value

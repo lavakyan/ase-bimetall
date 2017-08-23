@@ -1,6 +1,7 @@
 """ This module contains the function
   to generate core-shell A@B nanoparticle with FCC structure.
 """
+from __future__ import print_function
 import random
 import copy
 from math import sqrt
@@ -71,12 +72,12 @@ def cut_spherical_cluster(atoms, size):
     """
     atoms = copy.copy(atoms) # keep original atoms unchanged
     atoms.center()
-    Xmin = atoms.positions[:, 0].min()
-    Xmax = atoms.positions[:, 0].max()
-    Ymin = atoms.positions[:, 1].min()
-    Ymax = atoms.positions[:, 1].max()
-    Zmin = atoms.positions[:, 2].min()
-    Zmax = atoms.positions[:, 2].max()
+    Xmin = np.min(atoms.positions[:, 0])
+    Xmax = np.max(atoms.positions[:, 0])
+    Ymin = np.min(atoms.positions[:, 1])
+    Ymax = np.max(atoms.positions[:, 1])
+    Zmin = np.min(atoms.positions[:, 2])
+    Zmax = np.max(atoms.positions[:, 2])
     Cx =  (Xmin+Xmax)/2.0
     Cy =  (Ymin+Ymax)/2.0
     Cz =  (Zmin+Zmax)/2.0
@@ -278,7 +279,7 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
     n_shell = 0  # depth of the shell
     while (n_a < n_atoms * target_x):
         n_shell += 1
-        print "shell: ", n_shell
+        print ("shell: ", n_shell)
 
         if (n_depth != -1)and(n_shell > n_depth):
             break
@@ -317,25 +318,19 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
     assert n_a == checkn_a
     return atoms
 
-def hollowCore(atoms, a_cell, radius=3):
-    r"""This routine generates cluster with
-    empty core.
+def hollowCore(atoms, radius):
+    r""" Make an empty (hollow) core in the middle of atoms system
 
     Parameters
     ----------
     atoms: ase.Atoms
         ase Atoms object, containing atomic cluster.
-    a_cell: float
-        Parameter of FCC cell, in Angstrom.
-        Required for calculation of neighbor distances in for infinite
-        crystal.
-    radius: int
+    radius: float
         controlls the size of empty region in the center of cluster.
 
     Returns
     -------
-        Function returns ASE atoms object which
-        contains hollow cluster
+        ase.Atoms object
 
     Notes
     -----
@@ -344,17 +339,16 @@ def hollowCore(atoms, a_cell, radius=3):
     --------
     >>> atoms = FaceCenteredCubic('Ag',
       [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7,8,7], 4.09)
-    >>> atoms = hollowCore(atoms, 4.09, 5)
+    >>> atoms = hollowCore(atoms, 5.1)
     >>> view(atoms)
     """
     def dist2(P1, P2):
-        return (P1[0]-P2[0])**2+(P1[1]-P2[1])**2+(P1[2]-P2[2])**2
+        #~ return (P1[0]-P2[0])**2+(P1[1]-P2[1])**2+(P1[2]-P2[2])**2
+        return np.sum(np.power((P1-P2), 2))
 
     assert radius > 0
-    Xc = (min(atoms.positions[:,0])+max(atoms.positions[:,0]))/2.0
-    Yc = (min(atoms.positions[:,1])+max(atoms.positions[:,1]))/2.0
-    Zc = (min(atoms.positions[:,2])+max(atoms.positions[:,2]))/2.0
-    center = [Xc, Yc, Zc]
+    pos = atoms.positions
+    center = (np.min(pos, axis=0) + np.max(pos, axis=0)) / 2.0
     #atoms.translate([-Xc,-Yc,-Zc])
     i = 0
     while i < len(atoms):
@@ -363,6 +357,7 @@ def hollowCore(atoms, a_cell, radius=3):
         else:
             i += 1
     return atoms
+
 
 def randomize_biatom(atoms, type_a, type_b, ratio):
     """ replace randomly to acheive target conc """
@@ -537,13 +532,13 @@ if __name__ == '__main__':
       'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)
     #
     # test core shell
-    #atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.6, a_cell=4.09)  # ratio-based filling
+    atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.6, a_cell=4.09)  # ratio-based filling
     #atoms = sphericalFCC('Ag', 4.09, 8)
     #atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.0, a_cell=4.09, n_depth=1)
     #atoms = randomize_biatom(atoms, 'Pt', 'Ag', ratio=0.6)
     #atoms = randomize_biatom_13(atoms, 'Pt', 'Ag', ratio=0.6)
-    #atoms = hollowCore(atoms, 4.09, 5)
+    #atoms = hollowCore(atoms, 5.1)
     #atoms = CoreShellCN( atoms, 'Pt', 'Ag', 0.5 )
-    atoms = intermetallideFCC( atoms, 'Ag', 'Pt', 4.09 )
-    atoms = hop_shuffle( atoms, 'Pt', 'Ag', count=10)
+    #atoms = intermetallideFCC( atoms, 'Ag', 'Pt', 4.09 )
+    #atoms = hop_shuffle( atoms, 'Pt', 'Ag', count=10)
     view(atoms)

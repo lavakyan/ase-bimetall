@@ -312,8 +312,8 @@ class QSAR:
         self.CNshellBA = CNshellBA
 
     def atom_distances(self, atom_type = 'all'):
-        r"""This routine returns distances to the origin in the center
-        of nanoparticle. Can be used to calc distance distributions
+        r"""This routine returns distances with respec to the center
+        of nanoparticle. Can be used to calc radial distance distributions
 
         Parameters
         ----------
@@ -372,6 +372,66 @@ class QSAR:
         return Rs
         #return xs*xs+ys*ys+zs*zs
 
+    def interatomic_distances(self, Rmin=1.0, Rmax=2.9 ):
+        r"""Calculate average distance between atoms, with respect
+        for atom types.
+
+        Parameters
+        ----------
+        Rmin, Rmax:
+            the window where distances are averages.
+            Can be used to select only first coordiantion shell (default).
+
+        Returns
+        -------
+        dictinary containing averaged distances
+
+        Example
+        --------
+            qsar = QSAR(atoms)
+            qsar.interatomic_distances()
+            print(qsar.report_Rs())
+        """
+        N = len( atoms )
+
+        species = list(set(atoms.get_chemical_symbols()))
+
+        dist_dict = {}
+
+        for A in species:
+            for B in species:
+                dist_dict[A+'-'+B] = []
+
+        poss = atoms.get_positions()
+        poss_matrix = np.tile( poss, (N, 1, 1) )
+        dist_matrix = np.sum( np.power( poss_matrix - np.transpose(poss_matrix, axes=(1,0,2) ), 2), axis=2 )
+
+
+        Rmin2 = Rmin**2
+        Rmax2 = Rmax**2
+
+        Rmid2 = (Rmin2 + Rmax2)/2.0
+        Rdel2 = (Rmax2 - Rmin2)
+
+        alli, allj = np.where(np.abs(dist_matrix-Rmid2-Rdel2/2.0) < Rdel2/2.0)
+
+        for (i, j) in  np.nditer([alli, allj]):
+            if i != j:  # the more efficient 'i > j' produce result with different A-B and B-A distances :(
+                dist_dict[atoms[int(i)].symbol+'-'+atoms[int(j)].symbol].append( np.sqrt(dist_matrix[i,j]) )
+
+        # do average and store results in the class field
+        self.dist_dict = {}
+        for key in dist_dict:
+            self.dist_dict[key] = np.mean(np.array(dist_dict[key]))
+
+        return self.dist_dict
+
+    def report_Rs(self, header = 'Interatomic distances:'):
+        s = header+'\r\n'
+        for key, value in self.dist_dict.items():
+            s += '\t%s\t%.3f\r\n' % (key, value)
+        return s
+
     def report_CNs(self, header = 'Coordination numbers:'):
         s = header+'\r\n'
         for i, A in enumerate(self.chems):
@@ -402,10 +462,8 @@ if __name__ == '__main__':
     ))
     print(qsar.report_CNs())
     #exit(0)
-    print('\nTest biatomic')
-    #import ase
 
-    #from ase import Atoms, Atom
+    print('\nTest biatomic')
     atoms = FaceCenteredCubic(
       'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)
     from coreshell import CoreShellFCC
@@ -416,6 +474,9 @@ if __name__ == '__main__':
     view(atoms)
 
     qsar = QSAR(atoms)
+    qsar.interatomic_distances()
+    print(qsar.report_Rs())
+    #exit(0)
     qsar.biatomic('Pt', 'Ag')
     print('N = {}'.format(qsar.N))
     print('nA = {}'.format(qsar.nA))

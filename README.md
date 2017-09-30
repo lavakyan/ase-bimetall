@@ -47,7 +47,7 @@ The MC class and Move nethods are heavily based on [ASAP3](https://wiki.fysik.dt
     from ase.visualize import view
     view(atoms)
     ```
-    ![Screenshot of ASE GUI widndow](imgs/shot-PtAg.jpg?raw=true "Screenshot of ASE GUI window")
+    ![Screenshot of ASE GUI widndow](img/shot-PtAg.jpg?raw=true "Screenshot of ASE GUI window")
 * Find out coordination numbers:
 
     ``` python

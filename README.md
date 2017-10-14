@@ -57,7 +57,7 @@ The MC class and Move nethods are heavily based on [ASAP3](https://wiki.fysik.dt
 
     qsar.biatomic('Pt', 'Ag')
 
-    print(qsar.report_CNs())
+    print( qsar.report_CNs() )
     ```
     The output will like:
 

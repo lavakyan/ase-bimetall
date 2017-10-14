@@ -529,7 +529,7 @@ if __name__ == '__main__':
     #
     #from ase.cluster.cubic import FaceCenteredCubic
     atoms = FaceCenteredCubic(
-      'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)
+      'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09 )
     #
     # test core shell
     atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.6, a_cell=4.09)  # ratio-based filling

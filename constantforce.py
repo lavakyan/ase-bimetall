@@ -22,17 +22,18 @@ class ConstantForce(FixConstraint):
         self.index = a
         self.force = np.array(force)
 
-    def adjust_positions(self, oldpositions, newpositions):
-        pass
+    #def adjust_positions(self, atoms, new):
+    #   pass
 
-    def adjust_forces(self, positions, forces):
+    #~ def adjust_forces(self, positions, forces):
+    def adjust_forces(self, atoms, forces):
             forces[self.index] += self.force
 
     #def adjust_potential_energy(self, positions, forces):
     #    pass
 
     def __repr__(self):
-        return 'Constant force appliet to (%d) atom' % self.index
+        return 'Constant force applied to (%d) atom' % self.index
 
     def copy(self):
         return ConstantForce(a=self.index, force=self.force)

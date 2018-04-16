@@ -5,7 +5,7 @@ from __future__ import print_function
 import random
 import copy
 from math import sqrt
-from ase.calculators.neighborlist import NeighborList
+from ase.neighborlist import NeighborList
 from ase.cluster.cubic import FaceCenteredCubic
 import numpy as np
 

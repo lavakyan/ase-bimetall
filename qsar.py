@@ -11,7 +11,7 @@ import os, sys
 import numpy as np
 from math import sqrt
 from ase import Atom, Atoms
-from ase.calculators.neighborlist import NeighborList
+from ase.neighborlist import NeighborList
 
 class QSAR:
     def __init__(self, atoms, log='-'):

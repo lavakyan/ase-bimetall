@@ -69,13 +69,20 @@ class CentralRepulsion(FixConstraint):
     def adjust_forces(self, atoms, forces):
         for i in range(len(atoms)):
             d = atoms[i].position - self.R
-            forces[i] += -self.alpha * self.A * d / np.norm(d)**(self.alpha + 1)
+            dist = np.linalg.norm(d)
+            if dist < 0.001:
+                dist = 0.001
+            forces[i] += self.alpha * self.A * d / dist**(self.alpha + 2)
 
-    def adjust_potential_energy(self, atoms, energy):
+    def adjust_potential_energy(self, atoms):
+        energy = 0
         for i in range(len(atoms)):
             d = atoms[i].position - self.R
-            np.norm(d)
-            energy += self.A / np.norm(d)**self.alpha
+            dist = np.linalg.norm(d)
+            if dist < 0.001:
+                dist = 0.001
+            energy += self.A / dist**self.alpha
+        return energy
 
     def __repr__(self):
         return 'Repulsion potential'

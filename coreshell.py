@@ -68,9 +68,9 @@ def cut_spherical_cluster(atoms, size):
 
     Example
     --------
-    >>> atoms = cut_spherical_cluster(atoms, 10) # 1nm cluster
+    >>> atoms = cut_spherical_cluster(atoms, 10)  # 1nm cluster
     """
-    atoms = copy.copy(atoms) # keep original atoms unchanged
+    #~ atoms = copy.copy(atoms)  # keep original atoms uncentered
     atoms.center()
     Xmin = np.min(atoms.positions[:, 0])
     Xmax = np.max(atoms.positions[:, 0])
@@ -81,18 +81,16 @@ def cut_spherical_cluster(atoms, size):
     Cx =  (Xmin+Xmax)/2.0
     Cy =  (Ymin+Ymax)/2.0
     Cz =  (Zmin+Zmax)/2.0
-    R = size/2.0 # radius of cluster
-    ia = 0
-    while ia < len(atoms):
-        x2 = (atoms.positions[ia, 0] - Cx)**2
-        y2 = (atoms.positions[ia, 1] - Cy)**2
-        z2 = (atoms.positions[ia, 2] - Cz)**2
-        if (x2 + y2 + z2) > R**2:
-            del atoms[ia]
-        else:
-            ia += 1
-    return atoms
+    R = size/2.0  # radius of cluster
 
+    dists = np.sum((atoms.get_positions() - np.array([Cx,Cy,Cz]))**2, 1)
+    rem = np.nonzero(dists > R**2)[0]
+    if len(rem) > 0:
+        del atoms[rem]
+    else:
+        print('Warning: no atoms were deleted by cut_spherical_cluster()')
+
+    return atoms
 
 
 def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):
@@ -526,11 +524,13 @@ if __name__ == '__main__':
     #atoms = sphericalFCC('Ag', 4.09, 8)
     #view(atoms)
     #raw_input('press enter')
+    atoms = FaceCenteredCubic('Ag', [(1, 0, 0)], [20], latticeconstant=4.09)
+    atoms = cut_spherical_cluster(atoms, 40)
+    view(atoms)
+    raw_input('press enter')
     #
-    #from ase.cluster.cubic import FaceCenteredCubic
     atoms = FaceCenteredCubic(
       'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)
-    #
     # test core shell
     atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.6, a_cell=4.09)  # ratio-based filling
     #atoms = sphericalFCC('Ag', 4.09, 8)

@@ -93,6 +93,47 @@ def cut_spherical_cluster(atoms, size):
     return atoms
 
 
+def cut_elliptical_cluster(atoms, Dx, Dy, Dz):
+    r""" Cuts 3D ellipsiodal cluster cluster from provided atoms object
+
+    Parameters
+    ----------
+    atoms: ASE.Atoms object
+        the original cluster to be cut off
+    Dx, Dy, Dz: float
+        ellipse paramters, in Angstrom
+
+    Returns
+    -------
+    ase.Atoms object of resulted cluster
+
+    Example
+    --------
+    >>> atoms = cut_elliptical_cluster(atoms, 10, 10, 5)  #
+    """
+    #~ atoms = copy.copy(atoms)  # keep original atoms uncentered
+    atoms.center()
+    Xmin = np.min(atoms.positions[:, 0])
+    Xmax = np.max(atoms.positions[:, 0])
+    Ymin = np.min(atoms.positions[:, 1])
+    Ymax = np.max(atoms.positions[:, 1])
+    Zmin = np.min(atoms.positions[:, 2])
+    Zmax = np.max(atoms.positions[:, 2])
+    Cx =  (Xmin+Xmax)/2.0
+    Cy =  (Ymin+Ymax)/2.0
+    Cz =  (Zmin+Zmax)/2.0
+    R = np.array([Dx/2.0, Dy/2.0, Dz/2.0])
+
+    dists = np.sum(((atoms.get_positions() - np.array([Cx,Cy,Cz]))/R)**2, 1)
+    rem = np.nonzero(dists > 1)[0]
+    if len(rem) > 0:
+        del atoms[rem]
+    else:
+        print('Warning: no atoms were deleted by cut_spherical_cluster()')
+
+    return atoms
+
+
 def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):
     r"""This routine generates cluster with ideal core-shell architecture,
     so that atoms of type_a are placed on the surface
@@ -525,7 +566,8 @@ if __name__ == '__main__':
     #view(atoms)
     #raw_input('press enter')
     atoms = FaceCenteredCubic('Ag', [(1, 0, 0)], [20], latticeconstant=4.09)
-    atoms = cut_spherical_cluster(atoms, 40)
+    #~ atoms = cut_spherical_cluster(atoms, 40)
+    atoms = cut_elliptical_cluster(atoms, 40, 40, 24)
     view(atoms)
     raw_input('press enter')
     #

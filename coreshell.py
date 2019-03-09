@@ -358,6 +358,10 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
     return atoms
 
 def hollowCore(atoms, radius):
+    print('WARNING: hollowCore() is renamed to hollow_core()')
+    return hollow_core(atoms, radius)
+
+def hollow_core(atoms, radius):
     r""" Make an empty (hollow) core in the middle of atoms system
 
     Parameters
@@ -378,23 +382,20 @@ def hollowCore(atoms, radius):
     --------
     >>> atoms = FaceCenteredCubic('Ag',
       [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7,8,7], 4.09)
-    >>> atoms = hollowCore(atoms, 5.1)
+    >>> atoms = hollow_core(atoms, 5.1)
     >>> view(atoms)
     """
-    def dist2(P1, P2):
-        #~ return (P1[0]-P2[0])**2+(P1[1]-P2[1])**2+(P1[2]-P2[2])**2
-        return np.sum(np.power((P1-P2), 2))
-
     assert radius > 0
     pos = atoms.positions
     center = (np.min(pos, axis=0) + np.max(pos, axis=0)) / 2.0
-    #atoms.translate([-Xc,-Yc,-Zc])
-    i = 0
-    while i < len(atoms):
-        if dist2(atoms[i].position, center) < radius*radius:
-            atoms.pop( i )   # remove atom
-        else:
-            i += 1
+
+    dists = np.sum((pos - center)**2, 1)
+    rem = np.nonzero(dists < radius**2)[0]
+    if len(rem) > 0:
+        del atoms[rem]
+    else:
+        print('Warning: no atoms were deleted by hollow_core()')
+
     return atoms
 
 
@@ -568,6 +569,7 @@ if __name__ == '__main__':
     atoms = FaceCenteredCubic('Ag', [(1, 0, 0)], [20], latticeconstant=4.09)
     #~ atoms = cut_spherical_cluster(atoms, 40)
     atoms = cut_elliptical_cluster(atoms, 40, 40, 24)
+    atoms = hollow_core(atoms, radius=12)
     view(atoms)
     raw_input('press enter')
     #

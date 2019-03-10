@@ -128,6 +128,13 @@ class Fdmnes(FileIOCalculator):
             self.exp_data = np.interp(self.energies, data[:,0], data[:,1])
 
     def _load_theor(self, scale=None, eshift=None):
+        bav_file = open('temp_fdmnes_calc/fdmnes_output_bav.txt')
+        for line in bav_file:
+            last = line
+        bav_file.close()
+        if not 'Have a beautiful day' in last:
+            print(last)
+            raise Exception('Error in fdmnes calculation')
         data = np.genfromtxt('temp_fdmnes_calc/fdmnes_output.txt', skip_header=2)
         if self.energpho:
             self.energies = data[:,0]
@@ -152,7 +159,7 @@ class Fdmnes(FileIOCalculator):
             self._load_theor(scale=x[0], eshift=x[1])
             self._load_exp()  # rebinned at load
         if self.exp_data is None:
-            return -1
+            return 888
         else:
             rwin = np.ones(len(self.energies))
             res = np.sum(rwin * ((self.exp_data - self.theor_data)**2))
@@ -168,7 +175,8 @@ class Fdmnes(FileIOCalculator):
             #~ self.read_results()           # to test
             #~ self.results['energy'] = self.residual()  # to test
         except RuntimeError:
-            self.results['energy'] = 999 # big value
+            print('ERROR: RuntimeError')
+            self.results['energy'] = 999  # big value
 
     def copy_fdmnes_bin(self):  # is it neccesary?
         src = self.fdmnes
@@ -272,7 +280,12 @@ class Fdmnes(FileIOCalculator):
 
     def read_results(self):
         """Read energy, forces, ... from output file(s)."""
-        self._load_theor()
+        try:
+            self._load_theor()
+        except:
+            print('!ERROR at reading FDMNES results!')
+            self.results['energy'] = 666  # big bad value
+            return
         self._load_exp()
         # resid = self.residual()
         # vary scale and eshift for better agreement

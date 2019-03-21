@@ -115,6 +115,11 @@ class Fdmnes(FileIOCalculator):
         self.green = green  # MT-calculation
         self.eimag = eimag  #
 
+        self.extra_data_filename = None
+        self.extra_data = None
+        self.extra_contrib_scale = 1.0
+        self.extra_contrib_eshift = 0.0
+
         if not(self.log is None):
             self.log.write(' Command:\t%s\n Directory:\t%s \n Chi file:\t%s\n'
                % (self.command, self.directory, exp_filename))
@@ -158,12 +163,19 @@ class Fdmnes(FileIOCalculator):
         if x is not None:  # called from optimizer, have to reload to rebin
             self._load_theor(scale=x[0], eshift=x[1])
             self._load_exp()  # rebinned at load
+            if self.extra_data_filename is not None:
+                self.set_extra_contribution(scale=x[2], eshift=x[3])
         if self.exp_data is None:
             return 888
         else:
             rwin = np.ones(len(self.energies))
-            res = np.sum(rwin * ((self.exp_data - self.theor_data)**2))
-            norm = np.sum(rwin * ((self.exp_data)**2))
+            res = 777
+            if self.extra_data is None:
+                res = np.sum(rwin * ((self.exp_data - self.theor_data)**2))
+            else:
+                res = np.sum(rwin * ((self.exp_data - self.theor_data
+                    - self.extra_data)**2))
+            norm = np.sum(rwin * self.exp_data**2)
             # R-factor, %
             return res / norm * 100.0
 
@@ -290,21 +302,34 @@ class Fdmnes(FileIOCalculator):
         # resid = self.residual()
         # vary scale and eshift for better agreement
         if self.exp_data is not None:
-            values = [self.scale, self.eshift]
-            sopt_result = sopt.minimize(fun=self.residual, x0=values, method='L-BFGS-B', tol=1e-3,
-                                 bounds=[(0,None),(-10,10)],
-                                 options={'maxiter':50, 'disp':False})
-            #~ print(sopt_result)
-            if not sopt_result.success:
-                print('WARNINIG: scale-eshift optimization not converged.')
-            self.scale = sopt_result.x[0]
-            self.eshift = sopt_result.x[1]
+            if self.extra_data_filename is None:
+                values = [self.scale, self.eshift]
+                sopt_result = sopt.minimize(fun=self.residual, x0=values, method='L-BFGS-B', tol=1e-3,
+                                     bounds=[(0,None),(-10,10)],
+                                     options={'maxiter':50, 'disp':False})
+                if not sopt_result.success:
+                    print('WARNINIG: scale-eshift optimization not converged.')
+                self.scale = sopt_result.x[0]
+                self.eshift = sopt_result.x[1]
+            else:  # add extra contribution to theor
+                values = [self.scale, self.eshift, self.extra_contrib_scale, self.extra_contrib_eshift]
+                sopt_result = sopt.minimize(fun=self.residual, x0=values, method='L-BFGS-B', tol=1e-3,
+                                     bounds=[(0,None),(-10,10), (0,None),(-10,10)],
+                                     options={'maxiter':50, 'disp':False})
+                if not sopt_result.success:
+                    print('WARNINIG: scale-eshift optimization not converged.')
+                self.scale = sopt_result.x[0]
+                self.eshift = sopt_result.x[1]
+                self.extra_contrib_scale = sopt_result.x[2]
+                self.extra_contrib_eshift = sopt_result.x[3]
             print('Choosen scale: %f and shift: %f eV. ' % (self.scale, self.eshift))
             # reread with new parameters to be sure
             self._load_theor()
             self._load_exp()
-        #~ print('self.residual()')
-        #~ print(self.residual())
+            if self.extra_data_filename is not None:
+                self.set_extra_contribution(scale=self.extra_contrib_scale, eshift=self.extra_contrib_eshift)
+                print('\tExtra contrib scale: %f. ' % (self.extra_contrib_scale))
+                print('\tExtra contrib eshift: %f eV. ' % (self.extra_contrib_eshift))
         self.results['energy'] = self.residual()
 
     def _do_plot(self, rwin_divide=10):
@@ -313,6 +338,10 @@ class Fdmnes(FileIOCalculator):
         if self.exp_data is not None:
             plt.plot(self.energies, self.exp_data, label='exp.')
         plt.plot(self.energies, self.theor_data, label='sim.')
+        if self.extra_data is not None:
+            plt.plot(self.energies, self.extra_data, label='extra')
+            plt.plot(self.energies, self.theor_data+self.extra_data,
+                label='sum th.')
         plt.legend()
         plt.xlabel('E, eV')
         plt.ylabel('mu(E)')
@@ -333,6 +362,24 @@ class Fdmnes(FileIOCalculator):
 
     #~ def set_atoms(self, atoms):
         #~ self.atoms = atoms        # .copy() ?
+
+    def set_extra_contribution(self, filename=None, scale=1.0, eshift=0.0):
+        """
+        load contribution admixed to calculated spectra
+        filename should contain fdmnes calculation
+        """
+        #~ print('filename', filename)
+        #~ print('self.filename', self.extra_data_filename)
+        if filename is not None:
+            self.extra_data_filename = filename
+        if self.extra_data_filename is None:
+            raise Exception('ERROR: Extra file name is not set!')
+        if self.energies is None:
+            print('Warning: self.energies is None')
+            return
+        data = np.genfromtxt(self.extra_data_filename, skip_header=2)
+        self.extra_data = scale * np.interp(self.energies - eshift,
+            data[:,0], data[:,1])
 
 
 if __name__ == '__main__':
@@ -357,6 +404,8 @@ if __name__ == '__main__':
         radius=4.0,  # small radius for test
         energy_range=[-10, 1.0, -5, 0.5, 5, 1.0, 10, 2.0, 40, 5.0, 60, 10.0, 100], edge='K', absorber='Cu'
     )
+
+    calc.set_extra_contribution('/home/leon/XANES/Zeolites/Cu_MOR/fit-fdmnes-pso/CuCl_fdmnes_output.txt')
 
     atoms.set_calculator(calc)
 

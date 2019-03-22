@@ -145,10 +145,10 @@ class Fdmnes(FileIOCalculator):
             self.energies = data[:,0]
         if eshift is None:
             #~ print('self.eshift = %f' % self.eshift)
-            self.energies += self.eshift
+            self.energies += -self.eshift
         else:
             #~ print('eshift = %f' % eshift)
-            self.energies += eshift
+            self.energies += -eshift
         if scale is None:
             #~ print('self.scale = %f' % self.scale)
             self.theor_data = self.scale * data[:,1]
@@ -333,14 +333,17 @@ class Fdmnes(FileIOCalculator):
         self.results['energy'] = self.residual()
 
     def _do_plot(self, rwin_divide=10):
+        self._load_theor(scale=self.scale, eshift=self.eshift)
         if (self.exp_filename is not None) and (self.exp_data is None):
             self._load_exp()
-        if self.exp_data is not None:
+        if self.extra_data_filename is not None:
+            self.set_extra_contribution(scale=self.extra_contrib_scale,
+                eshift=self.extra_contrib_eshift)
             plt.plot(self.energies, self.exp_data, label='exp.')
         plt.plot(self.energies, self.theor_data, label='sim.')
         if self.extra_data is not None:
             plt.plot(self.energies, self.extra_data, label='extra')
-            plt.plot(self.energies, self.theor_data+self.extra_data,
+            plt.plot(self.energies, self.theor_data + self.extra_data,
                 label='sum th.')
         plt.legend()
         plt.xlabel('E, eV')
@@ -412,4 +415,8 @@ if __name__ == '__main__':
     print ('   MISFIT: %.6f' % atoms.get_potential_energy() )
 
     import matplotlib.pyplot as plt
+    #~ calc.extra_contrib_eshift = -5
+    #~ calc.eshift = 2
+    #~ calc.extra_contrib_scale = 20
+    #~ calc.scale = 20
     calc.show_plot()

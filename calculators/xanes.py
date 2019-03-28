@@ -18,7 +18,9 @@ class Fdmnes(FileIOCalculator):
         eshift=None, scale=1.0, fermilevel=-2.5,
         relativism=False,
         green=False, eimag=0.01, rmt=None,                # MT
-        iord=4, adimp=0.25,                                     # non-MT
+        iord=4, adimp=0.25,                               # non-MT
+        convolution=False,                                # convolution
+        gamma_hole=2.05, ecent=30.0, elarg=30.0, gamma_max=15.0,
         lmax=-1,
         ncores=1,
         fdmnes='fdmnes.bin', logfile='-'):
@@ -115,6 +117,12 @@ class Fdmnes(FileIOCalculator):
         self.green = green  # MT-calculation
         self.eimag = eimag  #
 
+        self.convolution = convolution
+        self.gamma_hole = gamma_hole
+        self.ecent = ecent
+        self.elarg = elarg
+        self.gamma_max = gamma_max
+
         self.extra_data_filename = None
         self.extra_data = None
         self.extra_contrib_scale = 1.0
@@ -140,7 +148,10 @@ class Fdmnes(FileIOCalculator):
         if not 'Have a beautiful day' in last:
             print(last)
             raise Exception('Error in fdmnes calculation')
-        data = np.genfromtxt('temp_fdmnes_calc/fdmnes_output.txt', skip_header=2)
+        if self.convolution:
+            data = np.genfromtxt('temp_fdmnes_calc/fdmnes_output_conv.txt', skip_header=1)
+        else:
+            data = np.genfromtxt('temp_fdmnes_calc/fdmnes_output.txt', skip_header=2)
         if self.energpho:
             self.energies = data[:,0]
         if eshift is None:
@@ -278,6 +289,18 @@ class Fdmnes(FileIOCalculator):
             x, y, z = atom.position
             a, b, c = atoms.cell[0,0], atoms.cell[1,1], atoms.cell[2,2]
             buff.append('  %i   %.6f   %.6f   %.6f '% (num, x/a, y/b, z/c))
+
+        if self.convolution:
+            buff.append('\n Convolution \n')
+            buff.append(' Gamma_hole ')
+            buff.append(' %.3f \n' %  self.gamma_hole)
+            buff.append(' Ecent ')
+            buff.append(' %.3f \n' %  self.ecent)
+            buff.append(' Elarg ')
+            buff.append(' %.3f \n' %  self.elarg)
+            buff.append(' Gamma_max ')
+            buff.append(' %.3f \n' %  self.gamma_max)
+
         buff.append(' End')
         try:
             fout.write('\n'.join(buff))
@@ -405,7 +428,8 @@ if __name__ == '__main__':
         energpho=True,
         green=True, eimag=0.05,  # MT calc
         radius=4.0,  # small radius for test
-        energy_range=[-10, 1.0, -5, 0.5, 5, 1.0, 10, 2.0, 40, 5.0, 60, 10.0, 100], edge='K', absorber='Cu'
+        energy_range=[-10, 1.0, -5, 0.5, 5, 1.0, 10, 2.0, 40, 5.0, 60, 10.0, 100], edge='K', absorber='Cu',
+        convolution=True
     )
 
     calc.set_extra_contribution('/home/leon/XANES/Zeolites/Cu_MOR/fit-fdmnes-pso/CuCl_fdmnes_output.txt')

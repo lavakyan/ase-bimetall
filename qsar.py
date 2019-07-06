@@ -392,9 +392,9 @@ class QSAR:
             qsar.interatomic_distances()
             print(qsar.report_Rs())
         """
-        N = len( atoms )
+        N = len(self.atoms)
 
-        species = list(set(atoms.get_chemical_symbols()))
+        species = list(set(self.atoms.get_chemical_symbols()))
 
         dist_dict = {}
 
@@ -402,7 +402,7 @@ class QSAR:
             for B in species:
                 dist_dict[A+'-'+B] = []
 
-        poss = atoms.get_positions()
+        poss = self.atoms.get_positions()
         poss_matrix = np.tile( poss, (N, 1, 1) )
         dist_matrix = np.sum( np.power( poss_matrix - np.transpose(poss_matrix, axes=(1,0,2) ), 2), axis=2 )
 
@@ -417,7 +417,7 @@ class QSAR:
 
         for (i, j) in  np.nditer([alli, allj]):
             if i != j:  # the more efficient 'i > j' produce result with different A-B and B-A distances :(
-                dist_dict[atoms[int(i)].symbol+'-'+atoms[int(j)].symbol].append( np.sqrt(dist_matrix[i,j]) )
+                dist_dict[self.atoms[int(i)].symbol+'-'+self.atoms[int(j)].symbol].append( np.sqrt(dist_matrix[i,j]) )
 
         # do average and store results in the class field
         self.dist_dict = {}

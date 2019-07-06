@@ -206,9 +206,10 @@ class MC:
         print('L = %i\n' % L)
         self.init_grid( L )
         for i_atom in xrange(len(atoms)):
-            in1 = margin + n1[i_atom] - min1
-            in2 = margin + n2[i_atom] - min2
-            in3 = margin + n3[i_atom] - min3
+            in1 = int(margin + n1[i_atom] - min1)
+            in2 = int(margin + n2[i_atom] - min2)
+            in3 = int(margin + n3[i_atom] - min3)
+            print(in1, in2, in3)
             self.GRID[in1, in2, in3] = atoms[i_atom].number
             if not(atoms[i_atom].number in self.chems):
                 self.chems.append(atoms[i_atom].number)

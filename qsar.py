@@ -77,12 +77,12 @@ class QSAR:
 
         N = len(self.atoms)
         nl = NeighborList( [0.5 * R1] * N, self_interaction=False, bothways=True )
-        nl.build(self.atoms)
+        nl.update(self.atoms)
         CN = 0
         Ncore = 0
         Nshell = 0
         CNshell = 0  # average CN of surface atoms
-        for i in xrange(0, N):
+        for i in range(0, N):
             indeces, offsets = nl.get_neighbors(i)
             CN += len(indeces)
             if len(indeces) < 12:
@@ -197,7 +197,7 @@ class QSAR:
             raise Exception('Number of A (' + str(nA) + ') ' +
               'and B (' + str(nB) + ') artoms mismatch!')
         nl = NeighborList([0.5 * R1] * N, self_interaction=False, bothways=True)
-        nl.build(self.atoms)
+        nl.update(self.atoms)
 
         # initialize counters:
         CN_AA = 0    # averaged total coord. numbers
@@ -210,7 +210,7 @@ class QSAR:
         CNshellAB = 0
         CNshellBB = 0
         CNshellBA = 0
-        for iatom in xrange(0, N):
+        for iatom in range(0, N):
             #print "central atom index:", iatom, " kind: ", self.atoms[iatom].symbol
             indeces, offsets = nl.get_neighbors(iatom)
             if self.atoms[iatom].symbol == B:

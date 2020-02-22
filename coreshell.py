@@ -70,8 +70,8 @@ def cut_spherical_cluster(atoms, size):
     --------
     >>> atoms = cut_spherical_cluster(atoms, 10)  # 1nm cluster
     """
-    #~ atoms = copy.copy(atoms)  # keep original atoms uncentered
-    atoms.center()
+    # atoms = copy.copy(atoms)  # keep original atoms uncentered
+    # atoms.center()
     Xmin = np.min(atoms.positions[:, 0])
     Xmax = np.max(atoms.positions[:, 0])
     Ymin = np.min(atoms.positions[:, 1])
@@ -195,7 +195,7 @@ def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):
 
     def fill_by_tag(atoms, chems, tag):
         """Replaces all atoms within selected layer"""
-        for i in xrange(0, len(atoms)):
+        for i in range(0, len(atoms)):
             if atoms[i].tag == tag:
                 chems[i] = type_a
         return
@@ -223,8 +223,8 @@ def CoreShellFCC(atoms, type_a, type_b, ratio, a_cell, n_depth=-1):
           ] * n_atoms,
           self_interaction=False, bothways=True
         )
-        neiblist.build(atoms)
-        for i in xrange(0, n_atoms):
+        neiblist.update(atoms)
+        for i in range(0, n_atoms):
             indeces, offsets = neiblist.get_neighbors(i)
             if (atoms[i].tag == 0):
                 if (len(indeces) < sum(coord_nums[1:n_shell + 1])):
@@ -325,9 +325,9 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
 
         neiblist = NeighborList( [ R_min ] * n_atoms,
           self_interaction=False, bothways=True )
-        neiblist.build( atoms )
+        neiblist.update( atoms )
 
-        for i in xrange( n_atoms ):
+        for i in range( n_atoms ):
             indeces, offsets = neiblist.get_neighbors(i)
             if (atoms[i].symbol == type_b):
                 CN_temp = 0
@@ -440,7 +440,7 @@ def randomize_biatom_13(atoms, type_a, type_b, ratio):
     #print n_A, n_B
     N = len(atoms)
     nl = NeighborList([1.5]*N, self_interaction=False, bothways=True)  # 2*1.5=3 Angstr. radius
-    nl.build(atoms)
+    nl.update(atoms)
     #print "conc",  n_A *1.0 / N
     r = random.Random()
     while n_A < ratio*N:  # add A atoms randomly
@@ -468,7 +468,7 @@ def randomize_userfunc(atoms, new_type, user_func):
     r = random.Random()
     dists = qsar.atom_distances()
     Rmax = max(dists)
-    for i_atom in xrange(N):
+    for i_atom in range(N):
         #r.random() - random float in interval [0,1)
         x = dists[i_atom]/Rmax
         if r.random() < user_func(x):
@@ -529,7 +529,7 @@ def hop_shuffle(atoms, A, B, count=10, R=3.0):
     neiblist = NeighborList( [ R ] * n_atoms,
                              self_interaction=False,
                              bothways=True )
-    neiblist.build( atoms )
+    neiblist.update( atoms )
     rnd = random.Random()
     while nswaps < count:
         i = rnd.randint(0, n_atoms-1)
@@ -544,7 +544,7 @@ def hop_shuffle(atoms, A, B, count=10, R=3.0):
                 atoms[i].symbol = A
                 atoms[j].symbol = B
                 nswaps += 1
-                neiblist.build( atoms )
+                neiblist.update( atoms )
         elif (atoms[i].symbol == B):
             candidates = []
             for ii in indeces:
@@ -555,7 +555,7 @@ def hop_shuffle(atoms, A, B, count=10, R=3.0):
                 atoms[i].symbol = B
                 atoms[j].symbol = A
                 nswaps += 1
-                neiblist.build( atoms )
+                neiblist.update( atoms )
     return atoms
 
 
@@ -571,7 +571,7 @@ if __name__ == '__main__':
     atoms = cut_elliptical_cluster(atoms, 40, 40, 24)
     atoms = hollow_core(atoms, radius=12)
     view(atoms)
-    raw_input('press enter')
+    input('press enter')
     #
     atoms = FaceCenteredCubic(
       'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)

@@ -268,8 +268,8 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
     and atoms of type_b are forming the core of nanoparticle.
     The 'surface' of nanoparticle is defined as atoms
     with unfinished first coordination shell.
-      Used algorithm without need for explicit knowledge of
-    far coordination shells parameters, as it was required in CoreShellFCC(..)
+    This algorithm *does not* requires explicit knowledge of
+    far coordination shells parameters, as it was in CoreShellFCC(..)
 
     Parameters
     ----------
@@ -284,7 +284,7 @@ def CoreShellCN(atoms, type_a, type_b, ratio, R_min = 1.5, CN_max=12, n_depth=-1
     R_min: float
         Typical bond length. Neighboring atoms within this value are counted
         as coordination numbers.
-        Default is 3.0.
+        Default is 1.5.
     CN_max: float
         Maximum possible coordination number (bulk coordination number).
         Default is 12.
@@ -460,8 +460,8 @@ def randomize_biatom_13(atoms, type_a, type_b, ratio):
 def randomize_userfunc(atoms, new_type, user_func):
     """ replace host atoms randomly by new_type of atom
     by user function of probability distribution.
-    Concentration is hidden that function.
-    Go throw all atoms one type."""
+    Concentration is hidden in that function.
+    Go throw all atoms of one type."""
     #TODO: backup atoms?
     N = len(atoms)
     qsar = QSAR(atoms)

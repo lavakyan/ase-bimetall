@@ -351,14 +351,14 @@ class QSAR:
         center_y = (min_y + max_y) / 2.0
         center_z = (min_z + max_z) / 2.0
         # shift center to origin
-        for i in xrange(len(self.atoms)):  # rewrite using numpy?
+        for i in range(len(self.atoms)):  # rewrite using numpy?
             xs[i] = xs[i] - center_x
             ys[i] = ys[i] - center_y
             zs[i] = zs[i] - center_z
         # store radia
         Rs = np.zeros(N)
         k = 0
-        for i in xrange(len(self.atoms)):
+        for i in range(len(self.atoms)):
             if atom_type == 'all':
                 Rs[k] = xs[i]**2 + ys[i]**2 + zs[i]**2
                 k = k + 1
@@ -366,7 +366,7 @@ class QSAR:
                 if self.atoms[i].symbol == atom_type:
                     Rs[k] = xs[i]**2 + ys[i]**2 + zs[i]**2
                     k = k + 1
-        for i in xrange(N):
+        for i in range(N):
             Rs[i] = np.sqrt(Rs[i])
         #pause
         return Rs

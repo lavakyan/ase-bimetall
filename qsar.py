@@ -13,6 +13,7 @@ from math import sqrt
 from ase import Atom, Atoms
 from ase.neighborlist import NeighborList
 
+
 class QSAR:
     def __init__(self, atoms, log='-'):
         self.atoms = atoms.copy()
@@ -109,7 +110,6 @@ class QSAR:
         self.E = E
         self.Ncore = Ncore
         self.CNshell = CNshell
-
 
     def biatomic(self, A, B, R1=3.0, calc_energy=False):
         r"""This routine analyzes atomic structure
@@ -440,6 +440,48 @@ class QSAR:
         return s
 
 
+def get_rdf(atoms, A, B, Rmax=6, dR=0.1):
+    '''
+    Calculate atomic radial distribution function of atoms B around atoms A.
+
+    Parameters
+    ----------
+    atoms: ASE Atoms object
+    A, B: string
+        symbol of central (A) and neighbor (B) atoms. If None - all atoms.
+    '''
+    R = np.arange(0, Rmax + dR / 2, dR)
+    N = len(atoms)
+
+    dist_list = []
+
+    poss = atoms.get_positions()
+    poss_matrix = np.tile(poss, (N, 1, 1))
+    dist_matrix = np.sum(np.power(poss_matrix -
+                                  np.transpose(poss_matrix,
+                                               axes=(1, 0, 2)), 2),
+                         axis=2)
+    dist_matrix = np.sqrt(dist_matrix)
+
+    chems = atoms.get_chemical_symbols()
+    nA = 0
+    for i1, C1 in enumerate(chems):
+        if (A is None) or (C1 == A):
+            nA += 1
+            for i2, C2 in enumerate(chems):
+                if i2 != i1:
+                    if (B is None) or (C2 == B):
+                        dist = dist_matrix[i1, i2]
+                        if dist <= Rmax:
+                            dist_list.append(dist)
+
+    digs = np.digitize(x=np.array(dist_list), bins=R, right=True)
+    counts = np.bincount(digs, minlength=len(R))
+    counts = counts / nA  # normalize per A-atom
+    return R, counts
+
+
+
 if __name__ == '__main__':
     from ase.cluster.cubic import FaceCenteredCubic
     print('\nTest monoatomic')
@@ -469,6 +511,15 @@ if __name__ == '__main__':
     from coreshell import CoreShellFCC
 
     CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.2, a_cell=4.09)
+
+    if True:  # test RDF
+        from matplotlib import pyplot as plt
+        # ~ r, rdf = get_rdf(atoms, 'Pt', 'Ag', Rmax=6, dR=0.1)
+        r, rdf = get_rdf(atoms, 'Pt', None, Rmax=6, dR=0.1)
+        r, rdf = get_rdf(atoms, None, 'Ag', Rmax=6, dR=0.1)
+        # ~ r, rdf = get_rdf(atoms, None, None, Rmax=6, dR=0.1)
+        plt.plot(r, rdf)
+        plt.show()
 
     from ase.visualize import view
     view(atoms)
@@ -518,16 +569,16 @@ if __name__ == '__main__':
     #raw_input("Press enter")
 
     if False:
-                print('# Radial distribution in NP')
-                print('# All atoms')
-                for value in qsar.atom_distances('all'):
-                        print(value)
-                print('# Ag')
-                for value in qsar.atom_distances('Ag'):
-                        print(value)
-                #print '# Pt'
-                #for value in qsar.atom_distances('Pt'):
-                #     print value
+        print('# Radial distribution in NP')
+        print('# All atoms')
+        for value in qsar.atom_distances('all'):
+                print(value)
+        print('# Ag')
+        for value in qsar.atom_distances('Ag'):
+                print(value)
+        #print '# Pt'
+        #for value in qsar.atom_distances('Pt'):
+        #     print value
 
     print('** Finished **')
 

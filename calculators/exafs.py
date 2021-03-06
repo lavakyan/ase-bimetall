@@ -183,7 +183,7 @@ class EXAFS(FileIOCalculator):
         buff = []
         buff.append(' TITLE   EXAFS-ASE\n')
         buff.append(' EDGE      %s' % self.edge)
-        buff.append(' S02       %f\n' % self.S02)
+        buff.append(' S02       %f\n' % 1.0)  #self.S02)
         buff.append(' *         pot    xsph  fms   paths genfmt ff2chi')
         buff.append(' CONTROL   1      1     1     1     1      1')
         buff.append(' PRINT     1      0     0     0     0      0\n')
@@ -448,6 +448,87 @@ def exafs_ft(k, chi, kmin=3, kmax=9, kweight=1, dk=0.1, rmax_out=10,
     return r, out
 
 
+def exafs_wt(k, chi, kweight=2, kmin=None, kmax=None, rmax_out=10, nfft=2048):
+    """
+    Cauchy Wavelet Transform for XAFS, following work [Munoz M., Argoul P.
+    and Farges F. Continuous Cauchy wavelet transform analyses of EXAFS
+    spectra: a qualitative approach, American Mineralogist 88,
+    pp. 694-700 (2003).]
+    Python adaptation by M. Newville for Larch project
+    <https://xraypy.github.io/xraylarch/>
+    pep8 style edits, etc - L. Avakyan
+
+    Parameters:
+    -----------
+      k:        1-d array of photo-electron wavenumber in Ang^-1
+      chi:      1-d array of chi
+      kweight:  exponent for weighting spectra by k**kweight
+      kmin:     lower k bound for transform
+      kmax:     upper k bound for transform
+      rmax_out: highest R for output data (10 Ang)
+      nfft:     value to use for N_fft (2048).
+
+      Returns:
+    ---------
+      (k, R, wcauchy), where
+      k:          1-d array of photo-electron wavenumber
+                  (could differ from input k)
+      R:          1-d array of R, from 0 to rmax_out.
+      wcauchy     2-d array of transform result
+    """
+    if kmin is not None:
+        chi = chi[k>kmin]
+        k = k[k>kmin]
+    if kmax is not None:
+        chi = chi[k<kmax]
+        k = k[k<kmax]
+    # ~ kstep = np.round(1000.*(k[1]-k[0]))/1000.0
+    kstep = k[1] - k[0]
+    rstep =  np.pi / nfft / kstep
+    rmin = 1.e-7
+    rmax = rmax_out
+    nrpts = int(np.round((rmax - rmin) / rstep))
+    nkout = len(k)
+    if kweight != 0:
+        chi = chi * k**kweight
+
+    NFT = nfft // 2
+    if len(k) < NFT:  # extend EXAFS to 1024 data points
+        knew = np.arange(NFT) * kstep
+        xnew = np.zeros(NFT) * kstep
+        xnew[:len(k)] = chi
+    else:  # limit EXAFS by 1024 data points
+        knew = k[:NFT]
+        xnew = chi[:NFT]
+
+    # FT parameters
+    freq = 1. / kstep * np.arange(nfft) / (2 * nfft)
+    omega = 2 * np.pi * freq
+
+    # simple FT calculation
+    tff = np.fft.fft(xnew, n=2*nfft)
+
+    # scale parameter
+    r  = np.linspace(0, rmax, nrpts)
+    r[0] = 1.e-19
+    a  = nrpts / (2 * r)
+
+    # Characteristic values for Cauchy wavelet:
+    # ~ cauchy_sum = np.log(2*np.pi) - np.log(1.0 + np.arange(nrpts)).sum()
+    cauchy_sum = np.log(2*np.pi) - np.sum(np.log(1.0 + np.arange(nrpts)))
+
+    # Main calculation:
+    wcauchy = np.zeros(nkout*nrpts, dtype='complex').reshape(nrpts, nkout)
+    for i in range(nrpts):
+        aom = a[i] * omega
+        aom[np.where(aom==0)] = 1.e-19
+        filt = cauchy_sum + nrpts * np.log(aom) - aom
+        tmp  = np.conj(np.exp(filt)) * tff[:nfft]
+        wcauchy[i, :] = np.fft.ifft(tmp, 2*nfft)[:nkout]
+
+    return k, r, wcauchy
+
+
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
     if False:  # test FT
@@ -455,8 +536,17 @@ if __name__ == '__main__':
         y = 5 * np.sin(2 * 2.25 * x + 1.5) * np.exp(-2 * 0.05 * x**2)
         plt.plot(x, y)
         plt.show()
-        xft, yft = exafs_ft(x, y, dk=1, rmax_out=5)
         plt.plot(xft, np.absolute(yft))
+        plt.show()
+    if True:  # test wavelet
+        x = np.arange(1, 12, 0.05)
+        y = 5 * np.sin(2 * 2.25 * x + 1.5) * np.exp(-2 * 0.05 * x**2)
+        xwt, rwt, result = exafs_wt(x, y)
+        xx, yy = np.meshgrid(xwt, rwt)
+        plt.pcolormesh(xx, yy, np.absolute(result), cmap='hot_r')
+        plt.xlabel('k, 1/Angstr.')
+        plt.ylabel('R, Angstr.')
+        plt.colorbar()
         plt.show()
 
     if True:  # test sim
@@ -466,10 +556,10 @@ if __name__ == '__main__':
                                   [2, 3, 1], 4.09)
 
         exafs = EXAFS(# chi_filename='nonleached_285PROX.chi',
-                      kmin=3.4, kmax=7.5, kw=1, edge='L3',
+                      kmin=3.4, kmax=10.5, kw=1, edge='L3',
                       absorber='Pt', atom_index=12,
                       feff='~/bin/feff85')
-
+        exafs.nlegs = 5
         # ~ atoms.set_calculator(exafs)
 
         exafs.calculate(atoms)
@@ -479,5 +569,13 @@ if __name__ == '__main__':
 
         exafs.plot(mode='kw')
         exafs.save('chi.dat')
-
+        if True:
+            xwt, rwt, result = exafs_wt(exafs.theor_k, exafs.S02 * exafs.theor_chi, kweight=1, kmin=2.5, kmax=10.5)
+            xx, yy = np.meshgrid(xwt, rwt)
+            plt.pcolormesh(xx, yy, np.absolute(result), cmap='hot_r')
+            plt.xlabel('k, 1/Angstr.')
+            plt.ylabel('R, Angstr.')
+            plt.colorbar()
+            plt.show()
         # print('   MISFIT: %.6f' % atoms.get_potential_energy())
+

@@ -39,8 +39,8 @@ def sphericalFCC(elem, latticeconstant, nlayers):
     # 2. cut al lextra atom from cube to make it spherical
     Xmin = atoms.positions[:, 0].min()
     Xmax = atoms.positions[:, 0].max()
-    C =  (Xmin+Xmax)/2.0
-    R = C
+    C = (Xmin + Xmax) / 2.0
+    R = (Xmax - Xmin) / 2.0
     ia = 0
     while ia < len(atoms):
         x2 = (atoms.positions[ia, 0] - C)**2
@@ -78,12 +78,12 @@ def cut_spherical_cluster(atoms, size):
     Ymax = np.max(atoms.positions[:, 1])
     Zmin = np.min(atoms.positions[:, 2])
     Zmax = np.max(atoms.positions[:, 2])
-    Cx =  (Xmin+Xmax)/2.0
-    Cy =  (Ymin+Ymax)/2.0
-    Cz =  (Zmin+Zmax)/2.0
+    Cx = (Xmin + Xmax) / 2.0
+    Cy = (Ymin + Ymax) / 2.0
+    Cz = (Zmin + Zmax) / 2.0
     R = size/2.0  # radius of cluster
 
-    dists = np.sum((atoms.get_positions() - np.array([Cx,Cy,Cz]))**2, 1)
+    dists = np.sum((atoms.get_positions() - np.array([Cx, Cy, Cz]))**2, 1)
     rem = np.nonzero(dists > R**2)[0]
     if len(rem) > 0:
         del atoms[rem]

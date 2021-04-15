@@ -145,7 +145,7 @@ class EXAFS(FileIOCalculator):
             # R-factor, %
             return res / norm * 100.0
 
-    def calculate(self, atoms, properties=['energy'], system_changes=[]):
+    def calculate(self, atoms, properties=['energy'], system_changes=['positions', 'numbers']):
         try:
             super().calculate(atoms, properties, system_changes)
         except RuntimeError:

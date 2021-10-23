@@ -503,6 +503,29 @@ def intermetallideFCC(atoms, A, B, cellconstant):
     #TODO: check and show warning if no changes were made
     return atoms
 
+def janus_z_particle(atoms, A, B, ratio):
+    '''
+    two-sided particle
+    A - base atom type
+    B - atom type to fill from the lower to higher z coordinate
+    '''
+    poss = atoms.get_positions()
+    zs = poss[:,2]
+    # ~ zmin = np.min(zs)
+    # ~ zmax = np.max(zs)
+    ntarget = int(np.round(len(atoms) * ratio))
+    print('target sites: %i' % ntarget)
+    # ~ zborder = fsolve(lambda x: np.sum(zs < x) - ntarget, (zmin+zmax)/2+0.01)
+    # ~ print('%.2f < %.2f < %.2f' % (zmin, zborder, zmax))
+    # ~ print('found sites: %i' % np.sum(zs < zborder))
+    asort = np.argsort(zs)
+    syms = np.array(atoms.get_chemical_symbols())
+    syms[asort[:ntarget]] = B
+    syms[asort[ntarget:]] = A
+    atoms.set_chemical_symbols(syms)
+    return atoms
+
+
 def hop_shuffle(atoms, A, B, count=10, R=3.0):
     """
     Shuffle atoms in given structure
@@ -566,17 +589,17 @@ if __name__ == '__main__':
     #atoms = sphericalFCC('Ag', 4.09, 8)
     #view(atoms)
     #raw_input('press enter')
-    atoms = FaceCenteredCubic('Ag', [(1, 0, 0)], [20], latticeconstant=4.09)
+    # ~ atoms = FaceCenteredCubic('Ag', [(1, 0, 0)], [20], latticeconstant=4.09)
     #~ atoms = cut_spherical_cluster(atoms, 40)
-    atoms = cut_elliptical_cluster(atoms, 40, 40, 24)
-    atoms = hollow_core(atoms, radius=12)
-    view(atoms)
-    input('press enter')
+    # ~ atoms = cut_elliptical_cluster(atoms, 40, 40, 24)
+    # ~ atoms = hollow_core(atoms, radius=12)
+    # ~ view(atoms)
+    # ~ input('press enter')
     #
     atoms = FaceCenteredCubic(
       'Ag', [(1, 0, 0), (1, 1, 0), (1, 1, 1)], [7, 8, 7], 4.09)
     # test core shell
-    atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.6, a_cell=4.09)  # ratio-based filling
+    #atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.6, a_cell=4.09)  # ratio-based filling
     #atoms = sphericalFCC('Ag', 4.09, 8)
     #atoms = CoreShellFCC(atoms, 'Pt', 'Ag', ratio=0.0, a_cell=4.09, n_depth=1)
     #atoms = randomize_biatom(atoms, 'Pt', 'Ag', ratio=0.6)
@@ -585,4 +608,6 @@ if __name__ == '__main__':
     #atoms = CoreShellCN( atoms, 'Pt', 'Ag', 0.5 )
     #atoms = intermetallideFCC( atoms, 'Ag', 'Pt', 4.09 )
     #atoms = hop_shuffle( atoms, 'Pt', 'Ag', count=10)
+    # test janus
+    atoms = janus_z_particle(atoms, 'Cu', 'Pt', 0.6)
     view(atoms)
